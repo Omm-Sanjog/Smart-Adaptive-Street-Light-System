@@ -1,221 +1,479 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard — Smart Street Light Monitor</title>
+<title>Smart Street Light Monitor</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
+/* ═══════════════ THEME TOKENS ═══════════════ */
 :root {
-  --bg:#030a0f; --panel:#07141c; --panel2:#0b1e2a; --border:#0e3248;
-  --accent:#00d4ff; --green:#00ff9d; --orange:#ff6b35; --gold:#ffd700;
-  --purple:#c084fc; --warn:#ff4444; --text:#c8e8f5; --muted:#3a6a84;
-}
-*{margin:0;padding:0;box-sizing:border-box;}
-html,body{height:100%;overflow:hidden;}
-body{
-  background:var(--bg); font-family:'Rajdhani',sans-serif; color:var(--text);
-  display:flex; flex-direction:column; height:100vh; overflow:hidden;
-}
-body::before{
-  content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
-  background-image:linear-gradient(rgba(0,212,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,.025) 1px,transparent 1px);
-  background-size:40px 40px;
+  --transition-theme: background .25s, color .25s, border-color .2s, box-shadow .2s;
 }
 
-/* HEADER */
-header{
-  flex-shrink:0; position:relative; z-index:10;
-  display:flex; align-items:center; justify-content:space-between;
-  padding:8px 20px;
-  background:linear-gradient(180deg,rgba(0,212,255,.07) 0%,transparent 100%);
-  border-bottom:1px solid var(--border);
-}
-.logo{display:flex;align-items:center;gap:10px;}
-.logo h1{font-family:'Orbitron',sans-serif;font-size:1rem;font-weight:900;color:var(--accent);letter-spacing:4px;text-shadow:0 0 14px var(--accent);}
-.logo p{font-size:.6rem;color:var(--muted);letter-spacing:3px;font-family:'Share Tech Mono',monospace;}
-.hdr-r{display:flex;align-items:center;gap:14px;}
-.sys-time{font-family:'Share Tech Mono',monospace;font-size:.82rem;color:var(--accent);text-align:right;}
-.sys-time small{display:block;font-size:.6rem;color:var(--muted);}
-.pill{display:flex;align-items:center;gap:6px;padding:4px 11px;border:1px solid var(--border);border-radius:20px;font-size:.68rem;font-family:'Share Tech Mono',monospace;}
-.dot{width:7px;height:7px;border-radius:50%;background:var(--muted);box-shadow:0 0 5px var(--muted);animation:blink 2s ease-in-out infinite;}
-.dot.on{background:var(--green);box-shadow:0 0 7px var(--green);}
-.dot.demo{background:var(--gold);box-shadow:0 0 7px var(--gold);}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-
-/* TOOLBAR */
-.toolbar{
-  flex-shrink:0; position:relative; z-index:10;
-  display:flex; align-items:center; gap:7px; flex-wrap:wrap;
-  padding:6px 20px; border-bottom:1px solid rgba(14,50,72,.5);
-}
-.btn{
-  padding:4px 12px; border:1px solid var(--border); background:var(--panel);
-  color:var(--text); font-family:'Rajdhani',sans-serif; font-weight:600;
-  font-size:.72rem; letter-spacing:1px; cursor:pointer; text-transform:uppercase;
-  transition:all .15s; clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%);
-}
-.btn:hover{border-color:var(--accent);color:var(--accent);}
-.btn.green{border-color:var(--green);color:var(--green);}
-.btn.green:hover{background:rgba(0,255,157,.07);}
-.btn.red{border-color:var(--warn);color:var(--warn);}
-.btn.red:hover{background:rgba(255,68,68,.07);}
-.sep{width:1px;height:22px;background:var(--border);}
-select{background:var(--panel);border:1px solid var(--border);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:.72rem;padding:4px 7px;outline:none;cursor:pointer;}
-select.ns{color:var(--accent);}
-.lbl{font-size:.65rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
-.csv-inf{font-family:'Share Tech Mono',monospace;font-size:.67rem;color:var(--muted);margin-left:auto;}
-.csv-inf.live{color:var(--green);}
-
-/* LOCAL LOGGER BAR */
-.logger-bar{
-  flex-shrink:0; position:relative; z-index:10;
-  display:flex; align-items:center; gap:10px;
-  padding:5px 20px;
-  background:rgba(0,255,157,.03);
-  border-bottom:1px solid rgba(0,255,157,.12);
-  font-family:'Share Tech Mono',monospace; font-size:.67rem;
-}
-.logger-bar .lg-label{
-  color:var(--green); font-weight:700; letter-spacing:2px; font-size:.62rem;
-  background:rgba(0,255,157,.1); border:1px solid rgba(0,255,157,.3);
-  padding:2px 8px; flex-shrink:0;
-}
-.logger-bar .lg-status{ color:var(--muted); }
-.logger-bar .lg-status b{ color:var(--green); }
-.logger-bar .lg-path{ color:var(--accent); font-size:.62rem; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.logger-bar .lg-rows{ color:var(--green); margin-left:auto; white-space:nowrap; }
-.logger-bar .lg-rows.zero{ color:var(--muted); }
-.logger-bar .lg-dot{ width:6px; height:6px; border-radius:50%; flex-shrink:0; background:var(--muted); }
-.logger-bar .lg-dot.active{ background:var(--green); box-shadow:0 0 6px var(--green); animation:blink 1.5s ease-in-out infinite; }
-.logger-bar .lg-hint{ color:var(--muted); font-size:.6rem; }
-.logger-bar .lg-hint a{ color:var(--accent); text-decoration:none; }
-.logger-bar .lg-hint a:hover{ text-decoration:underline; }
-
-/* MAIN */
-.main{flex:1;min-height:0;display:flex;position:relative;z-index:1;overflow:hidden;}
-
-/* TILES — 4 columns × 2 rows */
-.tiles{
-  flex:1;min-width:0;min-height:0;
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  grid-template-rows:repeat(2,1fr);
-  gap:10px; padding:12px;
+[data-theme="dark"] {
+  --bg:           #0d0f14;
+  --surface:      #141720;
+  --surface2:     #1a1e2b;
+  --surface3:     #202436;
+  --border:       #252a3a;
+  --border2:      #2e3450;
+  --accent:       #4f9eff;
+  --accent-soft:  rgba(79,158,255,.1);
+  --green:        #34d399;
+  --green-soft:   rgba(52,211,153,.1);
+  --orange:       #fb923c;
+  --orange-soft:  rgba(251,146,60,.1);
+  --gold:         #fbbf24;
+  --gold-soft:    rgba(251,191,36,.1);
+  --purple:       #a78bfa;
+  --purple-soft:  rgba(167,139,250,.1);
+  --red:          #f87171;
+  --red-soft:     rgba(248,113,113,.1);
+  --text:         #e2e8f0;
+  --text2:        #94a3b8;
+  --text3:        #4a5568;
+  --shadow:       rgba(0,0,0,.4);
+  --overlay:      rgba(13,15,20,.92);
+  --grid-line:    rgba(79,158,255,.03);
 }
 
-/* TILE */
-.tile{
-  background:var(--panel); border:1px solid var(--border);
-  padding:12px 14px; cursor:pointer; position:relative; overflow:hidden;
-  transition:border-color .2s,box-shadow .2s,transform .15s;
-  display:flex; flex-direction:column;
-  clip-path:polygon(0 0,calc(100% - 9px) 0,100% 9px,100% 100%,9px 100%,0 calc(100% - 9px));
-  min-height:0;
-}
-.tile::after{content:'';position:absolute;top:0;right:0;border-left:9px solid transparent;border-top:9px solid var(--border);transition:border-top-color .2s;}
-.tile:hover{border-color:var(--accent);box-shadow:0 0 18px rgba(0,212,255,.14);transform:translateY(-1px);}
-.tile:hover::after{border-top-color:var(--accent);}
-
-.tile-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
-.tile-lbl{font-size:.58rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-family:'Share Tech Mono',monospace;}
-.tile-ico{font-size:.95rem;opacity:.7;}
-.tile-val{font-family:'Orbitron',sans-serif;font-size:1.45rem;font-weight:700;line-height:1;margin-bottom:2px;}
-.tile-unit{font-size:.58rem;color:var(--muted);font-family:'Share Tech Mono',monospace;}
-.tile-sub{font-size:.6rem;font-family:'Share Tech Mono',monospace;margin-top:3px;}
-.tile-sub.up{color:var(--green)}.tile-sub.dn{color:var(--warn)}.tile-sub.nt{color:var(--muted)}
-
-/* status badge tiles */
-.badge{
-  display:inline-flex;align-items:center;gap:5px;
-  padding:3px 9px;border-radius:2px;
-  font-family:'Share Tech Mono',monospace;font-size:.72rem;font-weight:700;
-  border:1px solid currentColor;margin-top:4px;
+[data-theme="light"] {
+  --bg:           #f0f2f7;
+  --surface:      #ffffff;
+  --surface2:     #f8fafc;
+  --surface3:     #eef1f8;
+  --border:       #dde3f0;
+  --border2:      #c8d0e4;
+  --accent:       #2563eb;
+  --accent-soft:  rgba(37,99,235,.08);
+  --green:        #059669;
+  --green-soft:   rgba(5,150,105,.08);
+  --orange:       #d97706;
+  --orange-soft:  rgba(217,119,6,.08);
+  --gold:         #b45309;
+  --gold-soft:    rgba(180,83,9,.08);
+  --purple:       #7c3aed;
+  --purple-soft:  rgba(124,58,237,.08);
+  --red:          #dc2626;
+  --red-soft:     rgba(220,38,38,.08);
+  --text:         #1e2030;
+  --text2:        #64748b;
+  --text3:        #94a3b8;
+  --shadow:       rgba(0,0,0,.1);
+  --overlay:      rgba(240,242,247,.95);
+  --grid-line:    rgba(37,99,235,.025);
 }
 
-/* sparkline: fixed 26px, never grows */
-.sp-wrap{margin-top:auto;padding-top:6px;height:26px;flex-shrink:0;position:relative;}
-.sp-wrap canvas{position:absolute;inset:0;width:100%!important;height:26px!important;}
+/* ═══════════════ RESET & BASE ═══════════════ */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; overflow:hidden; }
+body {
+  background: var(--bg);
+  font-family: 'DM Sans', sans-serif;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  transition: var(--transition-theme);
+}
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 0;
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 36px 36px;
+}
 
-/* brightness bar */
-.bright-bar{margin-top:auto;padding-top:8px;flex-shrink:0;}
-.bright-track{height:6px;background:rgba(255,215,0,.1);border-radius:3px;overflow:hidden;border:1px solid rgba(255,215,0,.2);}
-.bright-fill{height:100%;background:linear-gradient(90deg,#ffd700,#ff6b35);border-radius:3px;transition:width .4s ease;}
+/* ═══════════════ HEADER ═══════════════ */
+header {
+  flex-shrink: 0; position: relative; z-index: 10;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 0 var(--border);
+}
+.logo { display: flex; align-items: center; gap: 12px; }
+.logo-icon {
+  width: 34px; height: 34px;
+  background: var(--accent);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem;
+  box-shadow: 0 0 16px rgba(79,158,255,.3);
+  flex-shrink: 0;
+}
+[data-theme="light"] .logo-icon { box-shadow: 0 0 16px rgba(37,99,235,.2); }
+.logo h1 {
+  font-family: 'Syne', sans-serif;
+  font-size: .92rem; font-weight: 800;
+  color: var(--text);
+  letter-spacing: .5px;
+}
+.logo p { font-size: .65rem; color: var(--text2); font-family: 'DM Mono', monospace; margin-top: 1px; }
 
-/* tile accent colors */
-.tile[data-k="voltage"]  .tile-val{color:var(--gold);}
-.tile[data-k="current"]  .tile-val{color:var(--accent);}
-.tile[data-k="power"]    .tile-val{color:var(--orange);}
-.tile[data-k="energy"]   .tile-val{color:var(--green);}
-.tile[data-k="brightness"] .tile-val{color:var(--gold);}
-.tile[data-k="night"]    .tile-val{font-size:1rem;}
-.tile[data-k="motion"]   .tile-val{font-size:1rem;}
-.tile[data-k="location"] .tile-val{font-size:.85rem;color:var(--purple);}
+.hdr-right { display: flex; align-items: center; gap: 12px; }
 
-/* SIDEBAR */
-.sidebar{width:240px;flex-shrink:0;border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
-.node-map{padding:10px;border-bottom:1px solid var(--border);flex-shrink:0;}
-.sec-title{font-family:'Orbitron',sans-serif;font-size:.6rem;color:var(--accent);letter-spacing:2px;margin-bottom:8px;}
-.node-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;}
-.nd{border:1px solid var(--border);border-radius:3px;padding:5px 3px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;transition:all .15s;font-family:'Share Tech Mono',monospace;font-size:.55rem;color:var(--muted);text-align:center;}
-.nd:hover,.nd.active{border-color:var(--accent);color:var(--accent);background:rgba(0,212,255,.05);}
-.nd.on{background:rgba(0,255,157,.03);}
-.nd.off{opacity:.5;}
-.nd-ico{font-size:.9rem;}
-.nd-loc{font-size:.5rem;color:var(--muted);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%;text-align:center;}
-.nd-leg{font-size:.55rem;margin-top:6px;}
-.nd-leg span{margin-right:6px;}
+.sys-clock {
+  font-family: 'DM Mono', monospace;
+  font-size: .78rem; color: var(--text); text-align: right;
+}
+.sys-clock small { display: block; font-size: .6rem; color: var(--text2); margin-top: 1px; }
 
-/* serial */
-.serial-box{flex:1;min-height:0;display:flex;flex-direction:column;}
-.serial-hdr{padding:7px 10px;background:rgba(0,212,255,.04);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;flex-shrink:0;font-family:'Orbitron',sans-serif;font-size:.58rem;color:var(--accent);letter-spacing:2px;}
-.serial-hdr .cnt{margin-left:auto;color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:.6rem;}
-.serial-log{flex:1;min-height:0;overflow-y:auto;padding:7px 9px;font-family:'Share Tech Mono',monospace;font-size:.63rem;line-height:1.8;color:var(--muted);}
-.serial-log::-webkit-scrollbar{width:3px;}
-.serial-log::-webkit-scrollbar-thumb{background:var(--border);}
-.log-ts{color:var(--border);}.log-ok{color:var(--green);}.log-warn{color:var(--orange);}.log-err{color:var(--warn);}.log-data{color:#4a8fa8;}
+/* ── Theme toggle ── */
+.theme-btn {
+  width: 36px; height: 36px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 1rem;
+  transition: all .2s;
+  flex-shrink: 0;
+}
+.theme-btn:hover { border-color: var(--accent); background: var(--accent-soft); }
+.icon-moon { display: block; }
+.icon-sun  { display: none; }
+[data-theme="light"] .icon-moon { display: none; }
+[data-theme="light"] .icon-sun  { display: block; }
 
-/* TICKER */
-.ticker{flex-shrink:0;height:26px;display:flex;align-items:center;overflow:hidden;border-top:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:.65rem;background:rgba(3,10,15,.97);position:relative;z-index:10;}
-.ticker-lbl{padding:0 10px;background:var(--accent);color:var(--bg);font-weight:700;height:100%;display:flex;align-items:center;flex-shrink:0;font-size:.62rem;letter-spacing:2px;}
-.ticker-inner{overflow:hidden;flex:1;}
-.ticker-track{display:flex;gap:40px;white-space:nowrap;animation:ticka 24s linear infinite;padding-left:16px;}
-@keyframes ticka{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
-.t-ok{color:var(--green)}.t-warn{color:var(--orange)}.t-mt{color:var(--muted)}
+/* ── Conn pill ── */
+.conn-pill {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-family: 'DM Mono', monospace; font-size: .65rem;
+  color: var(--text2);
+  background: var(--surface2);
+}
+.c-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--text3);
+  flex-shrink: 0;
+  transition: background .3s, box-shadow .3s;
+}
+.c-dot.on   { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s ease-in-out infinite; }
+.c-dot.demo { background: var(--gold);  box-shadow: 0 0 6px var(--gold);  animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
-/* CHART MODAL */
-.overlay{position:fixed;inset:0;background:rgba(3,10,15,.94);backdrop-filter:blur(8px);z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
-.overlay.open{opacity:1;pointer-events:all;}
-.modal{width:88vw;max-width:980px;height:72vh;background:var(--panel2);border:1px solid var(--accent);box-shadow:0 0 50px rgba(0,212,255,.16);display:flex;flex-direction:column;transform:scale(.96);transition:transform .2s;clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,18px 100%,0 calc(100% - 18px));}
-.overlay.open .modal{transform:scale(1);}
-.modal-hdr{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--border);}
-.modal-title{font-family:'Orbitron',sans-serif;font-size:.85rem;color:var(--accent);letter-spacing:3px;}
-.modal-meta{font-family:'Share Tech Mono',monospace;font-size:.65rem;color:var(--muted);margin-top:3px;}
-.modal-meta b{color:var(--text);}
-.modal-close{background:none;border:1px solid var(--border);color:var(--muted);cursor:pointer;width:28px;height:28px;font-size:.95rem;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
-.modal-close:hover{border-color:var(--warn);color:var(--warn);}
-.modal-chart{flex:1;min-height:0;padding:14px 18px;position:relative;}
-.modal-chart canvas{position:absolute;inset:14px 18px;}
-.modal-stats{flex-shrink:0;display:flex;border-top:1px solid var(--border);}
-.ms{flex:1;padding:8px 14px;border-right:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:.62rem;color:var(--muted);}
-.ms:last-child{border-right:none;}
-.ms b{display:block;font-family:'Orbitron',sans-serif;font-size:.95rem;color:var(--accent);margin-bottom:2px;}
-.mrng{display:flex;gap:3px;}
-.rb{padding:3px 9px;border:1px solid var(--border);background:none;color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:.62rem;cursor:pointer;transition:all .15s;}
-.rb.active,.rb:hover{border-color:var(--accent);color:var(--accent);}
+/* ═══════════════ TOOLBAR ═══════════════ */
+.toolbar {
+  flex-shrink: 0; position: relative; z-index: 10;
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  padding: 7px 20px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+}
+.tbtn {
+  padding: 5px 13px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text2);
+  font-family: 'DM Sans', sans-serif;
+  font-size: .72rem; font-weight: 500;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.tbtn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.tbtn.danger:hover { border-color: var(--red); color: var(--red); background: var(--red-soft); }
+.tbtn.green-btn { border-color: var(--green); color: var(--green); }
+.tbtn.green-btn:hover { background: var(--green-soft); }
+.sep { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
+.lbl { font-size: .65rem; color: var(--text3); font-family: 'DM Mono', monospace; white-space: nowrap; }
+.tb-input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  font-family: 'DM Mono', monospace;
+  font-size: .68rem;
+  padding: 5px 9px;
+  outline: none;
+  border-radius: 6px;
+  width: 175px;
+  transition: border-color .15s;
+}
+.tb-input:focus { border-color: var(--accent); }
+.tb-select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: .68rem;
+  padding: 5px 9px;
+  outline: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.pkt-inf {
+  font-family: 'DM Mono', monospace;
+  font-size: .65rem; color: var(--text3);
+  margin-left: auto;
+}
 
-/* CONN MODAL */
-.conn-ov{position:fixed;inset:0;background:rgba(3,10,15,.97);z-index:2000;display:flex;align-items:center;justify-content:center;}
-.conn-box{background:var(--panel2);border:1px solid var(--accent);padding:26px;width:420px;text-align:center;clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));}
-.conn-box h2{font-family:'Orbitron',sans-serif;color:var(--accent);font-size:.88rem;letter-spacing:3px;margin-bottom:5px;}
-.conn-box p{color:var(--muted);font-size:.78rem;margin-bottom:16px;}
-.conn-opts{display:flex;flex-direction:column;gap:7px;margin-bottom:14px;}
-.copt{padding:10px 13px;border:1px solid var(--border);background:var(--panel);cursor:pointer;color:var(--text);font-family:'Rajdhani',sans-serif;font-size:.82rem;font-weight:600;transition:all .15s;display:flex;align-items:center;gap:9px;text-align:left;}
-.copt:hover{border-color:var(--accent);color:var(--accent);}
-.copt small{display:block;color:var(--muted);font-size:.67rem;font-weight:400;}
-.conn-note{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--muted);line-height:1.9;border:1px solid var(--border);padding:8px 10px;background:rgba(0,212,255,.03);}
-.conn-note b{color:var(--accent);}
+/* ═══════════════ LOGGER BAR ═══════════════ */
+.logger-bar {
+  flex-shrink: 0; position: relative; z-index: 10;
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 20px;
+  background: var(--green-soft);
+  border-bottom: 1px solid color-mix(in srgb, var(--green) 20%, transparent);
+  font-family: 'DM Mono', monospace; font-size: .64rem;
+}
+.lg-label {
+  font-size: .58rem; font-weight: 500; letter-spacing: 1px;
+  color: var(--green);
+  background: var(--green-soft);
+  border: 1px solid color-mix(in srgb, var(--green) 35%, transparent);
+  padding: 2px 7px; border-radius: 3px; flex-shrink: 0;
+}
+.lg-status { color: var(--text2); }
+.lg-status b { color: var(--green); }
+.lg-path { color: var(--accent); font-size: .6rem; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lg-rows { color: var(--green); margin-left: auto; white-space: nowrap; }
+.lg-rows.zero { color: var(--text3); }
+.lg-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; background: var(--text3); }
+.lg-dot.active { background: var(--green); box-shadow: 0 0 5px var(--green); animation: pulse 1.5s ease-in-out infinite; }
+.lg-hint a { color: var(--accent); text-decoration: none; }
+.lg-hint a:hover { text-decoration: underline; }
+
+/* ═══════════════ MAIN ═══════════════ */
+.main { flex: 1; min-height: 0; display: flex; position: relative; z-index: 1; overflow: hidden; }
+
+/* ═══════════════ TILES ═══════════════ */
+.tiles {
+  flex: 1; min-width: 0; min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 10px;
+  padding: 12px;
+}
+.tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  min-height: 0;
+  transition: border-color .2s, box-shadow .2s, transform .15s, background .25s;
+}
+.tile:hover {
+  border-color: var(--accent);
+  box-shadow: 0 4px 24px var(--shadow), 0 0 0 1px var(--accent-soft);
+  transform: translateY(-1px);
+}
+/* accent strip */
+.tile::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--t-color, var(--accent));
+  border-radius: 10px 10px 0 0;
+  opacity: .6;
+}
+
+.tile-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.tile-lbl { font-size: .62rem; font-weight: 500; letter-spacing: .8px; text-transform: uppercase; color: var(--text2); }
+.tile-ico { font-size: .95rem; opacity: .75; }
+.tile-val { font-family: 'Syne', sans-serif; font-size: 1.55rem; font-weight: 700; line-height: 1; color: var(--t-color, var(--accent)); margin-bottom: 2px; }
+.tile-unit { font-size: .56rem; color: var(--text3); font-family: 'DM Mono', monospace; letter-spacing: .5px; }
+.tile-sub { font-size: .62rem; font-family: 'DM Mono', monospace; margin-top: 4px; }
+.tile-sub.up { color: var(--green); }
+.tile-sub.dn { color: var(--red); }
+.tile-sub.nt { color: var(--text3); }
+
+/* tile accent colors via CSS var */
+.tile[data-k="voltage"]    { --t-color: var(--gold); }
+.tile[data-k="current"]    { --t-color: var(--accent); }
+.tile[data-k="power"]      { --t-color: var(--orange); }
+.tile[data-k="energy"]     { --t-color: var(--green); }
+.tile[data-k="brightness"] { --t-color: var(--gold); }
+.tile[data-k="night"]      { --t-color: var(--purple); }
+.tile[data-k="motion"]     { --t-color: var(--orange); }
+.tile[data-k="location"]   { --t-color: var(--purple); }
+
+/* special tile val sizes */
+.tile[data-k="night"]    .tile-val,
+.tile[data-k="motion"]   .tile-val { font-size: 1.1rem; }
+.tile[data-k="location"] .tile-val { font-size: .9rem; }
+
+/* Badge */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 4px;
+  font-family: 'DM Mono', monospace; font-size: .65rem;
+  border: 1px solid currentColor;
+  margin-top: 4px;
+}
+
+/* Sparkline */
+.sp-wrap { margin-top: auto; padding-top: 6px; height: 26px; flex-shrink: 0; position: relative; }
+.sp-wrap canvas { position: absolute; inset: 0; width: 100% !important; height: 26px !important; }
+
+/* Brightness bar */
+.bright-bar { margin-top: auto; padding-top: 8px; flex-shrink: 0; }
+.bright-track { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.bright-fill  { height: 100%; background: linear-gradient(90deg, var(--gold), var(--orange)); border-radius: 3px; transition: width .4s ease; }
+
+/* ═══════════════ SIDEBAR ═══════════════ */
+.sidebar { width: 230px; flex-shrink: 0; border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; background: var(--surface2); transition: background .25s; }
+.node-map { padding: 10px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.sec-title { font-family: 'Syne', sans-serif; font-size: .62rem; font-weight: 700; color: var(--accent); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px; }
+.node-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+.nd {
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 6px 4px; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  cursor: pointer; transition: all .15s;
+  font-family: 'DM Mono', monospace; font-size: .52rem; color: var(--text2); text-align: center;
+  background: var(--surface);
+}
+.nd:hover, .nd.active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.nd.off { opacity: .45; }
+.nd-ico { font-size: .85rem; }
+.nd-id  { font-size: .52rem; font-weight: 500; }
+.nd-loc { font-size: .48rem; color: var(--text3); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; }
+.nd-leg { font-size: .55rem; margin-top: 6px; display: flex; gap: 8px; }
+
+/* Serial log */
+.serial-box { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.serial-hdr {
+  padding: 7px 10px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+  font-family: 'Syne', sans-serif; font-size: .6rem; font-weight: 700;
+  color: var(--text2); letter-spacing: 1px; text-transform: uppercase;
+  background: var(--surface);
+}
+.serial-hdr .cnt { margin-left: auto; color: var(--text3); font-family: 'DM Mono', monospace; font-size: .6rem; font-weight: 400; }
+.serial-log { flex: 1; min-height: 0; overflow-y: auto; padding: 7px 9px; font-family: 'DM Mono', monospace; font-size: .61rem; line-height: 1.85; color: var(--text2); }
+.serial-log::-webkit-scrollbar { width: 3px; }
+.serial-log::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+.log-ts   { color: var(--text3); }
+.log-ok   { color: var(--green); }
+.log-warn { color: var(--orange); }
+.log-err  { color: var(--red); }
+.log-data { color: var(--accent); }
+
+/* ═══════════════ TICKER ═══════════════ */
+.ticker {
+  flex-shrink: 0; height: 28px; display: flex; align-items: center;
+  overflow: hidden; border-top: 1px solid var(--border);
+  font-family: 'DM Mono', monospace; font-size: .63rem;
+  background: var(--surface); position: relative; z-index: 10;
+}
+.ticker-lbl {
+  padding: 0 12px; background: var(--accent); color: #fff;
+  font-weight: 500; height: 100%; display: flex; align-items: center;
+  flex-shrink: 0; font-size: .6rem; letter-spacing: 1.5px; text-transform: uppercase;
+}
+.ticker-inner { overflow: hidden; flex: 1; }
+.ticker-track {
+  display: flex; gap: 36px; white-space: nowrap;
+  animation: ticka 24s linear infinite; padding-left: 16px;
+}
+@keyframes ticka { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+.t-ok   { color: var(--green); }
+.t-warn { color: var(--orange); }
+.t-mt   { color: var(--text3); }
+
+/* ═══════════════ CHART MODAL ═══════════════ */
+.overlay {
+  position: fixed; inset: 0;
+  background: var(--overlay);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+  width: 88vw; max-width: 940px; height: 70vh;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  box-shadow: 0 24px 80px var(--shadow);
+  display: flex; flex-direction: column;
+  transform: scale(.96); transition: transform .2s;
+  overflow: hidden;
+}
+.overlay.open .modal { transform: scale(1); }
+.modal-hdr {
+  flex-shrink: 0; display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; border-bottom: 1px solid var(--border);
+}
+.modal-title { font-family: 'Syne', sans-serif; font-size: .88rem; color: var(--text); font-weight: 700; letter-spacing: 1px; }
+.modal-meta  { font-family: 'DM Mono', monospace; font-size: .62rem; color: var(--text2); margin-top: 3px; }
+.modal-meta b { color: var(--text); }
+.modal-close {
+  background: none; border: 1px solid var(--border); color: var(--text2);
+  cursor: pointer; width: 30px; height: 30px; font-size: .9rem;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 6px; transition: all .15s; flex-shrink: 0;
+}
+.modal-close:hover { border-color: var(--red); color: var(--red); background: var(--red-soft); }
+.modal-chart { flex: 1; min-height: 0; padding: 14px 18px; position: relative; }
+.modal-chart canvas { position: absolute; inset: 14px 18px; }
+.modal-stats { flex-shrink: 0; display: flex; border-top: 1px solid var(--border); }
+.ms { flex: 1; padding: 10px 14px; border-right: 1px solid var(--border); font-family: 'DM Mono', monospace; font-size: .62rem; color: var(--text2); }
+.ms:last-child { border-right: none; }
+.ms b { display: block; font-family: 'Syne', sans-serif; font-size: .9rem; color: var(--accent); margin-bottom: 2px; font-weight: 700; }
+.mrng { display: flex; gap: 4px; }
+.rb {
+  padding: 4px 10px; border: 1px solid var(--border); background: none;
+  color: var(--text2); font-family: 'DM Mono', monospace; font-size: .6rem;
+  cursor: pointer; transition: all .15s; border-radius: 5px;
+}
+.rb.active, .rb:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+
+/* ═══════════════ CONN MODAL ═══════════════ */
+.conn-ov {
+  position: fixed; inset: 0;
+  background: var(--overlay);
+  z-index: 2000;
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(6px);
+}
+.conn-box {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 16px;
+  padding: 28px;
+  width: 420px;
+  box-shadow: 0 32px 80px var(--shadow);
+  text-align: center;
+}
+.conn-box h2 { font-family: 'Syne', sans-serif; color: var(--text); font-size: 1rem; font-weight: 800; margin-bottom: 6px; }
+.conn-box p { color: var(--text2); font-size: .78rem; margin-bottom: 20px; }
+.conn-opts { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.copt {
+  padding: 12px 14px; border: 1px solid var(--border); background: var(--surface2);
+  cursor: pointer; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: .8rem;
+  font-weight: 500; transition: all .15s; display: flex; align-items: center; gap: 10px;
+  text-align: left; border-radius: 8px;
+}
+.copt:hover { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.copt small { display: block; color: var(--text2); font-size: .65rem; font-weight: 400; margin-top: 2px; }
+.copt:hover small { color: var(--text2); }
+.conn-note {
+  font-family: 'DM Mono', monospace; font-size: .6rem; color: var(--text2); line-height: 2;
+  border: 1px solid var(--border); padding: 10px 12px;
+  background: var(--surface2); border-radius: 8px; text-align: left;
+}
+.conn-note b { color: var(--accent); }
+
+/* ═══════════════ LOGGER HELP MODAL ═══════════════ */
+.help-body { padding: 20px 22px; font-family: 'DM Mono', monospace; font-size: .7rem; line-height: 2; overflow-y: auto; color: var(--text2); }
+.help-body .h-section { color: var(--accent); font-family: 'Syne', sans-serif; font-size: .65rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin: 16px 0 8px; }
+.help-body .h-code { background: var(--bg); border: 1px solid var(--border); padding: 10px 14px; border-radius: 6px; color: var(--green); }
 </style>
 </head>
 <body>
@@ -223,26 +481,26 @@ select.ns{color:var(--accent);}
 <!-- CONNECTION MODAL -->
 <div class="conn-ov" id="connOv">
   <div class="conn-box">
-    <h2>⚡ DASHBOARD</h2>
-    <p>Smart Street Light Monitor — Choose data source</p>
+    <h2>⚡ Smart Street Light Monitor</h2>
+    <p>Choose your data source to begin</p>
     <div class="conn-opts">
       <button class="copt" onclick="connectWS()">
-        <span style="font-size:1.3rem">🐍</span>
+        <span style="font-size:1.4rem">🐍</span>
         <div>
-          Connect via Python Logger <span style="color:var(--green);font-size:.65rem;font-family:'Share Tech Mono',monospace;margin-left:4px">RECOMMENDED</span>
-          <small>Run logger.py first → dashboard connects over WebSocket · Serial + CSV handled by Python</small>
+          Connect via Python Logger <span style="color:var(--green);font-size:.62rem;font-family:'DM Mono',monospace;margin-left:4px">RECOMMENDED</span>
+          <small>Run logger.py → dashboard connects over WebSocket · Serial + CSV handled by Python</small>
         </div>
       </button>
       <button class="copt" onclick="startDemo()">
-        <span style="font-size:1.3rem">🌐</span>
+        <span style="font-size:1.4rem">🌐</span>
         <div>Demo Mode — Simulated Live Data<small>No hardware needed · Simulates SL-01 … SL-06 nodes</small></div>
       </button>
     </div>
     <div class="conn-note">
       <b>How it works:</b><br>
-      1. Run <b>logger.py</b> in a terminal &nbsp;→&nbsp; it reads your ESP32 serial port<br>
+      1. Run <b>logger.py</b> in a terminal → it reads your ESP32 serial port<br>
       2. logger.py writes CSV to disk + opens WebSocket at <b>ws://localhost:8765</b><br>
-      3. Click "Connect via Python Logger" → dashboard receives live data here<br><br>
+      3. Click "Connect via Python Logger" → dashboard receives live data<br><br>
       Install once: &nbsp;<b>pip install pyserial websockets</b>
     </div>
   </div>
@@ -251,42 +509,49 @@ select.ns{color:var(--accent);}
 <!-- HEADER -->
 <header>
   <div class="logo">
-    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-      <circle cx="16" cy="16" r="15" stroke="#00d4ff" stroke-width="1" opacity=".4"/>
-      <path d="M16 4v6M16 22v6M4 16h6M22 16h6" stroke="#00d4ff" stroke-width="1.4" stroke-linecap="round"/>
-      <path d="M10 10l6-4.5 6 4.5v7.5l-6 4.5-6-4.5z" fill="rgba(0,212,255,.1)" stroke="#00d4ff" stroke-width="1.1"/>
-      <circle cx="16" cy="16" r="2" fill="#00d4ff"/>
-    </svg>
-    <div><h1>DASHBOARD</h1><p>Smart Street Light Monitor — KIIT University</p></div>
+    <div class="logo-icon">💡</div>
+    <div>
+      <h1>STREET LIGHT MONITOR</h1>
+      <p>Smart Grid Dashboard</p>
+    </div>
   </div>
-  <div class="hdr-r">
-    <div class="sys-time"><div id="clkT"></div><small id="clkD"></small></div>
-    <div class="pill"><span class="dot" id="cDot"></span><span id="cLbl">DISCONNECTED</span></div>
+  <div class="hdr-right">
+    <div class="sys-clock">
+      <div id="clkT"></div>
+      <small id="clkD"></small>
+    </div>
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Toggle light/dark mode">
+      <span class="icon-moon">🌙</span>
+      <span class="icon-sun">☀️</span>
+    </button>
+    <div class="conn-pill">
+      <span class="c-dot" id="cDot"></span>
+      <span id="cLbl">DISCONNECTED</span>
+    </div>
   </div>
 </header>
 
 <!-- TOOLBAR -->
 <div class="toolbar">
   <span class="lbl">Source:</span>
-  <button class="btn" id="btnConn" onclick="connectWS()">🐍 Connect Logger</button>
-  <button class="btn red" id="btnDisc" onclick="disconnectWS()" style="display:none">✕ Disconnect</button>
-  <button class="btn" id="btnDemo" onclick="startDemo()">🌐 Demo</button>
+  <button class="tbtn" id="btnConn" onclick="connectWS()">🐍 Connect Logger</button>
+  <button class="tbtn danger" id="btnDisc" onclick="disconnectWS()" style="display:none">✕ Disconnect</button>
+  <button class="tbtn" onclick="startDemo()">🌐 Demo</button>
   <div class="sep"></div>
   <span class="lbl">WS:</span>
-  <input id="wsUrl" value="ws://localhost:8765"
-    style="background:var(--panel);border:1px solid var(--border);color:var(--accent);font-family:'Share Tech Mono',monospace;font-size:.7rem;padding:4px 8px;outline:none;width:180px;">
+  <input id="wsUrl" class="tb-input" value="ws://localhost:8765">
   <div class="sep"></div>
   <span class="lbl">Node:</span>
-  <select class="ns" id="nodeSel" onchange="onNodeChange()">
+  <select class="tb-select" id="nodeSel" onchange="onNodeChange()">
     <option value="ALL">ALL NODES</option>
   </select>
   <div class="sep"></div>
-  <button class="btn" onclick="downloadCSV()">💾 Download CSV</button>
-  <button class="btn" onclick="clearAll()">🗑 Clear</button>
-  <span class="csv-inf" id="csvInf">0 packets received</span>
+  <button class="tbtn" onclick="downloadCSV()">💾 Export CSV</button>
+  <button class="tbtn danger" onclick="clearAll()">🗑 Clear</button>
+  <span class="pkt-inf" id="csvInf">0 packets received</span>
 </div>
 
-<!-- LOCAL LOGGER STATUS BAR -->
+<!-- LOGGER STATUS BAR -->
 <div class="logger-bar" id="loggerBar">
   <span class="lg-dot" id="lgDot"></span>
   <span class="lg-label">PYTHON BRIDGE</span>
@@ -329,7 +594,7 @@ select.ns{color:var(--accent);}
       <div class="sp-wrap"><canvas id="sp-power"></canvas></div>
     </div>
 
-    <!-- Energy Accumulated -->
+    <!-- Energy -->
     <div class="tile" data-k="energy" onclick="openModal('energy')">
       <div class="tile-head"><span class="tile-lbl">Energy Used</span><span class="tile-ico">🔆</span></div>
       <div class="tile-val" id="tv-energy">—</div>
@@ -369,14 +634,17 @@ select.ns{color:var(--accent);}
       <div class="sp-wrap"><canvas id="sp-motion"></canvas></div>
     </div>
 
-    <!-- Location -->
-    <div class="tile" data-k="location" onclick="openModal('location')">
+    <!-- Location — auto-populated from received data -->
+    <div class="tile" data-k="location">
       <div class="tile-head"><span class="tile-lbl">Node Location</span><span class="tile-ico">📍</span></div>
-      <div class="tile-val" id="tv-location" style="font-size:.85rem;color:var(--purple)">—</div>
+      <div class="tile-val" id="tv-location">—</div>
       <div class="tile-unit">NODE ID · LOCATION TAG</div>
-      <div class="tile-sub nt" id="td-location" style="margin-top:6px">LoRa 433 MHz</div>
+      <div class="tile-sub nt" id="td-location" style="margin-top:6px">Auto-detected from packet</div>
       <div style="margin-top:auto;padding-top:6px;flex-shrink:0">
-        <div style="font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--muted)">RSSI: <span id="tv-rssi" style="color:var(--accent)">—</span> dBm &nbsp;|&nbsp; Pkts: <span id="tv-pkts" style="color:var(--green)">0</span></div>
+        <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--text3)">
+          RSSI: <span id="tv-rssi" style="color:var(--accent)">—</span> dBm &nbsp;·&nbsp;
+          Pkts: <span id="tv-pkts" style="color:var(--green)">0</span>
+        </div>
       </div>
     </div>
 
@@ -385,18 +653,21 @@ select.ns{color:var(--accent);}
   <!-- SIDEBAR -->
   <div class="sidebar">
     <div class="node-map">
-      <div class="sec-title">⬡ NODE STATUS MAP</div>
+      <div class="sec-title">Node Status Map</div>
       <div class="node-grid" id="nodeGrid">
-        <div style="font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--muted);grid-column:1/-1;padding:4px 0">Waiting for nodes…</div>
+        <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--text3);grid-column:1/-1;padding:4px 0">Waiting for nodes…</div>
       </div>
-      <div class="nd-leg" style="margin-top:7px">
+      <div class="nd-leg" style="margin-top:8px">
         <span style="color:var(--green)">● ON</span>
-        <span style="color:var(--warn)">● OFF</span>
+        <span style="color:var(--red)">● OFF</span>
         <span style="color:var(--accent)">● SEL</span>
       </div>
     </div>
     <div class="serial-box">
-      <div class="serial-hdr">📡 RAW LORA LOG<span class="cnt" id="frmCnt">0 packets</span></div>
+      <div class="serial-hdr">
+        📡 LoRa Log
+        <span class="cnt" id="frmCnt">0 packets</span>
+      </div>
       <div class="serial-log" id="serialLog">
         <div><span class="log-ok">[SYSTEM] Dashboard ready. Connect receiver or use Demo Mode.</span></div>
       </div>
@@ -407,7 +678,7 @@ select.ns{color:var(--accent);}
 
 <!-- TICKER -->
 <div class="ticker">
-  <div class="ticker-lbl">ALERTS</div>
+  <div class="ticker-lbl">Alerts</div>
   <div class="ticker-inner">
     <div class="ticker-track" id="tickTrk">
       <span class="t-ok">✔ System Online</span>
@@ -417,7 +688,6 @@ select.ns{color:var(--accent);}
       <span class="t-mt">LDR · Night detection</span>
       <span class="t-mt">PIR · Motion detection</span>
       <span class="t-ok">✔ CSV Logging Ready</span>
-      <!-- dup for loop -->
       <span class="t-ok">✔ System Online</span>
       <span class="t-mt">LoRa 433MHz · 5-min packet interval</span>
       <span class="t-mt">PZEM-004T · Voltage / Current / Power</span>
@@ -431,7 +701,7 @@ select.ns{color:var(--accent);}
 
 <!-- LOGGER HELP MODAL -->
 <div class="overlay" id="loggerHelp" style="z-index:1500">
-  <div class="modal" style="height:auto;max-height:85vh;overflow-y:auto;width:700px;max-width:95vw">
+  <div class="modal" style="height:auto;max-height:85vh;overflow-y:auto;width:680px;max-width:95vw">
     <div class="modal-hdr">
       <div>
         <div class="modal-title">📁 LOCAL CSV LOGGER — SETUP GUIDE</div>
@@ -439,42 +709,24 @@ select.ns{color:var(--accent);}
       </div>
       <button class="modal-close" onclick="closeLoggerHelp()">✕</button>
     </div>
-    <div style="padding:20px 22px;font-family:'Share Tech Mono',monospace;font-size:.72rem;line-height:2;overflow-y:auto">
-
-      <div style="color:var(--accent);font-family:'Orbitron',sans-serif;font-size:.65rem;letter-spacing:2px;margin-bottom:10px">STEP 1 — INSTALL PYTHON DEPENDENCY</div>
-      <div style="background:var(--bg);border:1px solid var(--border);padding:10px 14px;margin-bottom:16px;color:var(--green)">pip install pyserial</div>
-
-      <div style="color:var(--accent);font-family:'Orbitron',sans-serif;font-size:.65rem;letter-spacing:2px;margin-bottom:10px">STEP 2 — RUN THE LOGGER</div>
-      <div style="background:var(--bg);border:1px solid var(--border);padding:10px 14px;margin-bottom:6px;color:var(--green)">python logger.py</div>
-      <div style="color:var(--muted);margin-bottom:16px">Place <span style="color:var(--accent)">logger.py</span> in the same folder as this HTML file. Run it in a terminal/CMD window. Keep it running while you use the dashboard.</div>
-
-      <div style="color:var(--accent);font-family:'Orbitron',sans-serif;font-size:.65rem;letter-spacing:2px;margin-bottom:10px">STEP 3 — SELECT YOUR PORT</div>
-      <div style="color:var(--muted);margin-bottom:16px">The script will list all available COM ports and let you pick one. Select the <span style="color:var(--gold)">receiver ESP32</span> (the one connected via USB). Use the same baud rate as set in the dashboard (default: 115200).</div>
-
-      <div style="color:var(--accent);font-family:'Orbitron',sans-serif;font-size:.65rem;letter-spacing:2px;margin-bottom:10px">WHAT IT DOES</div>
-      <div style="color:var(--muted);margin-bottom:6px">
-        ✔ Reads every raw line from the serial port<br>
-        ✔ Parses <span style="color:var(--accent)">ID:SL-01,Loc:...,N:,M:,B:,V:,I:,P:</span> packets<br>
-        ✔ Accumulates energy (kWh) per node using time deltas<br>
-        ✔ Writes a new timestamped CSV file on every run<br>
-        ✔ Flushes to disk after <span style="color:var(--green)">every single packet</span> — no data loss on crash<br>
-        ✔ Prints a live summary line per packet in the terminal
-      </div>
-
-      <div style="margin-top:16px;color:var(--accent);font-family:'Orbitron',sans-serif;font-size:.65rem;letter-spacing:2px;margin-bottom:10px">OUTPUT FILE</div>
-      <div style="background:var(--bg);border:1px solid var(--border);padding:10px 14px;margin-bottom:6px;color:var(--gold)">streetlight_2026-04-11_08-26-00.csv</div>
-      <div style="color:var(--muted)">Saved in the same folder as logger.py. A new file is created each time you start the logger.</div>
-
-      <div style="margin-top:16px;color:var(--accent);font-family:'Orbitron',sans-serif;font-size:.65rem;letter-spacing:2px;margin-bottom:10px">CSV COLUMNS</div>
-      <div style="background:var(--bg);border:1px solid var(--border);padding:10px 14px;color:var(--text);line-height:1.9">
-        <span style="color:var(--muted)">timestamp</span> · <span style="color:var(--muted)">node_id</span> · <span style="color:var(--muted)">location</span> ·
-        <span style="color:var(--purple)">night</span> · <span style="color:var(--orange)">motion</span> · <span style="color:var(--gold)">brightness_pct</span> ·
-        <span style="color:var(--gold)">voltage_V</span> · <span style="color:var(--accent)">current_A</span> · <span style="color:var(--orange)">power_W</span> ·
-        <span style="color:var(--green)">energy_kWh</span> · <span style="color:var(--muted)">rssi</span>
-      </div>
-
-      <div style="margin-top:16px;padding:10px 14px;border:1px solid rgba(255,215,0,.3);background:rgba(255,215,0,.04);color:var(--gold)">
-        ⚠ NOTE: The dashboard and logger.py both read the same serial port. You should only open one at a time — either use the dashboard's Web Serial connection OR run logger.py, not both simultaneously on the same port.
+    <div class="help-body">
+      <div class="h-section">Step 1 — Install Python Dependency</div>
+      <div class="h-code">pip install pyserial websockets</div>
+      <div class="h-section">Step 2 — Run the Logger</div>
+      <div class="h-code">python logger.py</div>
+      <div style="margin-top:6px">Place <b style="color:var(--accent)">logger.py</b> in the same folder as this HTML file. Keep it running while using the dashboard.</div>
+      <div class="h-section">Step 3 — Select your Port</div>
+      <div>The script will list available COM ports. Select the <b style="color:var(--gold)">receiver ESP32</b>. Use the same baud rate as in the dashboard (default: 115200).</div>
+      <div class="h-section">What It Does</div>
+      <div>✔ Reads every raw line from the serial port<br>
+      ✔ Parses <span style="color:var(--accent)">ID:SL-01,Loc:...,N:,M:,B:,V:,I:,P:</span> packets<br>
+      ✔ Accumulates energy (kWh) per node using time deltas<br>
+      ✔ Writes a timestamped CSV file on every run<br>
+      ✔ Flushes to disk after <span style="color:var(--green)">every single packet</span></div>
+      <div class="h-section">CSV Columns</div>
+      <div style="color:var(--text)">timestamp · node_id · location · night · motion · brightness_pct · voltage_V · current_A · power_W · energy_kWh · rssi</div>
+      <div style="margin-top:14px;padding:10px 12px;border:1px solid color-mix(in srgb,var(--gold) 30%,transparent);background:var(--gold-soft);color:var(--gold);border-radius:6px">
+        ⚠ NOTE: The dashboard and logger.py both read the same serial port. Use only one at a time — either the dashboard's Web Serial connection OR logger.py, not both simultaneously.
       </div>
     </div>
   </div>
@@ -486,7 +738,7 @@ select.ns{color:var(--accent);}
     <div class="modal-hdr">
       <div>
         <div class="modal-title" id="mTitle">—</div>
-        <div class="modal-meta">Node: <b id="mNode">—</b> &nbsp;|&nbsp; Location: <b id="mLoc">—</b> &nbsp;|&nbsp; Last packet: <b id="mTime">—</b></div>
+        <div class="modal-meta">Node: <b id="mNode">—</b> &nbsp;·&nbsp; Location: <b id="mLoc">—</b> &nbsp;·&nbsp; Last packet: <b id="mTime">—</b></div>
       </div>
       <div style="display:flex;gap:7px;align-items:center">
         <div class="mrng">
@@ -511,8 +763,7 @@ select.ns{color:var(--accent);}
 
 <script>
 // ═══════════════════════════════════════════════
-// PACKET KEYS — mirrors Transmitter_Final.ino
-// Format: ID:SL-01,Loc:KIIT_GATE_1,N:1,M:0,B:30,V:230.5,I:1.23,P:284.5
+// CONFIG
 // ═══════════════════════════════════════════════
 const GRAPH_KEYS = ['voltage','current','power','energy','brightness','night','motion'];
 const LABELS = {
@@ -521,13 +772,28 @@ const LABELS = {
   night:'Night Mode (0/1)', motion:'Motion Detected (0/1)',
   location:'Node / Location'
 };
-const COLORS = {
-  voltage:'#ffd700', current:'#00d4ff', power:'#ff6b35',
-  energy:'#00ff9d', brightness:'#ffd700',
-  night:'#c084fc', motion:'#00ff9d', location:'#c084fc'
-};
 
-const MAX_PTS = 200; // store up to 200 packets per node
+function getColors() {
+  const s = getComputedStyle(document.documentElement);
+  return {
+    voltage:    s.getPropertyValue('--gold').trim(),
+    current:    s.getPropertyValue('--accent').trim(),
+    power:      s.getPropertyValue('--orange').trim(),
+    energy:     s.getPropertyValue('--green').trim(),
+    brightness: s.getPropertyValue('--gold').trim(),
+    night:      s.getPropertyValue('--purple').trim(),
+    motion:     s.getPropertyValue('--orange').trim(),
+    location:   s.getPropertyValue('--purple').trim(),
+  };
+}
+
+const MAX_PTS = 200;
+
+// ═══════════════ THEME ═══════════════
+function toggleTheme() {
+  const html = document.documentElement;
+  html.setAttribute('data-theme', html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+}
 
 // ═══════════════ STATE ═══════════════
 let curNode = 'ALL';
@@ -536,40 +802,52 @@ let demoTimer = null;
 let modalKey = null, modalRange = 600, modalChart = null;
 let csvLogging = true;
 let csvRows = [];
+let csvSnapshot = [];
 
-// nodeData keyed by node ID (e.g. "SL-01")
-// Each entry: { ts, voltage, current, power, energy, brightness, night, motion, location, eAcc, on, lastSeen }
 const nodeData = {};
-const nodeOrder = []; // insertion order
-
+const nodeOrder = [];
 const CSV_HDR = 'timestamp,node_id,location,night,motion,brightness_pct,voltage_V,current_A,power_W,energy_kWh,rssi';
 
 // ═══════════════ CLOCK ═══════════════
 (function clk(){
-  const n=new Date();
-  document.getElementById('clkT').textContent=n.toLocaleTimeString('en-IN',{hour12:false});
-  document.getElementById('clkD').textContent=n.toLocaleDateString('en-IN',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
-  setTimeout(clk,1000);
+  const n = new Date();
+  document.getElementById('clkT').textContent = n.toLocaleTimeString('en-IN',{hour12:false});
+  document.getElementById('clkD').textContent = n.toLocaleDateString('en-IN',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
+  setTimeout(clk, 1000);
 })();
 
 // ═══════════════ NODE REGISTRATION ═══════════════
+// Location is ALWAYS taken from received packet data (loc field)
 function ensureNode(id, loc) {
   if (nodeData[id]) {
-    nodeData[id].location = loc || nodeData[id].location;
+    // Update location from latest packet
+    if (loc) nodeData[id].location = loc;
     return;
   }
   nodeData[id] = {
     ts:[], voltage:[], current:[], power:[], energy:[], brightness:[],
-    night:[], motion:[], location: loc||id,
+    night:[], motion:[],
+    location: loc || id,   // set from packet; fallback to id if empty
     eAcc:0, on:true, lastSeen:null
   };
   nodeOrder.push(id);
-  // Add to node select dropdown
   const sel = document.getElementById('nodeSel');
   const opt = document.createElement('option');
-  opt.value = id; opt.textContent = id;
+  opt.value = id;
+  opt.textContent = `${id} · ${loc || id}`;
   sel.appendChild(opt);
   renderMap();
+}
+
+// Update dropdown label when location changes
+function refreshNodeDropdown(id) {
+  const sel = document.getElementById('nodeSel');
+  for (const opt of sel.options) {
+    if (opt.value === id) {
+      opt.textContent = `${id} · ${nodeData[id].location}`;
+      break;
+    }
+  }
 }
 
 // ═══════════════ NODE MAP ═══════════════
@@ -577,14 +855,14 @@ function renderMap() {
   const g = document.getElementById('nodeGrid');
   g.innerHTML = '';
   if (nodeOrder.length === 0) {
-    g.innerHTML = '<div style="font-family:\'Share Tech Mono\',monospace;font-size:.6rem;color:var(--muted);grid-column:1/-1;padding:4px 0">Waiting for nodes…</div>';
+    g.innerHTML = '<div style="font-family:\'DM Mono\',monospace;font-size:.6rem;color:var(--text3);grid-column:1/-1;padding:4px 0">Waiting for nodes…</div>';
     return;
   }
   nodeOrder.forEach(id => {
     const d = nodeData[id];
     const el = document.createElement('div');
     el.className = `nd ${d.on?'on':'off'} ${curNode===id?'active':''}`;
-    el.innerHTML = `<span class="nd-ico">${d.on?'🟢':'🔴'}</span><span>${id}</span><span class="nd-loc">${d.location}</span>`;
+    el.innerHTML = `<span class="nd-ico">${d.on?'🟢':'🔴'}</span><span class="nd-id">${id}</span><span class="nd-loc" title="${d.location}">${d.location}</span>`;
     el.onclick = () => { document.getElementById('nodeSel').value = id; onNodeChange(); };
     g.appendChild(el);
   });
@@ -595,6 +873,7 @@ const sparks = {};
 (function initSparks(){
   GRAPH_KEYS.forEach(k => {
     const c = document.getElementById(`sp-${k}`); if(!c) return;
+    const COLORS = getColors();
     sparks[k] = new Chart(c, {
       type:'line',
       data:{ labels:[], datasets:[{ data:[], borderColor:COLORS[k], borderWidth:1.5, pointRadius:0, fill:true, backgroundColor:COLORS[k]+'18', tension:0.4 }] },
@@ -612,38 +891,29 @@ function pushSpark(k, val) {
 }
 
 // ═══════════════ PACKET PARSER ═══════════════
-// Handles: ID:SL-01,Loc:KIIT_GATE_1,N:1,M:0,B:30,V:230.5,I:1.23,P:284.5
-// Also handles optional RSSI suffix: ... RSSI:-85
 function parsePacket(line) {
   const obj = {};
-  // extract RSSI if present (receiver may append it)
   const rssiMatch = line.match(/RSSI:\s*(-?\d+)/i);
   if (rssiMatch) { obj.rssi = parseInt(rssiMatch[1]); line = line.replace(/,?\s*RSSI:\s*-?\d+/i,''); }
-
   const parts = line.split(',');
   parts.forEach(p => {
-    const idx = p.indexOf(':');
-    if(idx < 0) return;
-    const key = p.slice(0,idx).trim();
-    const val = p.slice(idx+1).trim();
-    obj[key] = val;
+    const idx = p.indexOf(':'); if(idx < 0) return;
+    obj[p.slice(0,idx).trim()] = p.slice(idx+1).trim();
   });
   return obj;
 }
 
-// ═══════════════ INGEST ═══════════════
+// ═══════════════ INGEST (raw LoRa line) ═══════════════
 function ingest(line) {
   line = line.trim(); if(!line) return;
   logS(line);
-
-  // Must contain ID: to be a valid LoRa packet
   if(!line.includes('ID:')) return;
-
   const pkt = parsePacket(line);
-  const id  = pkt['ID']; if(!id) return;
-  const loc = pkt['Loc'] || id;
+  const id = pkt['ID']; if(!id) return;
+  const loc = pkt['Loc'] || id;   // LOCATION FROM PACKET
 
   ensureNode(id, loc);
+  refreshNodeDropdown(id);
   const d = nodeData[id];
   const now = Date.now();
 
@@ -651,51 +921,73 @@ function ingest(line) {
   const I  = parseFloat(pkt['I']) || 0;
   const P  = parseFloat(pkt['P']) || 0;
   const B  = parseFloat(pkt['B']) || 0;
-  const N  = parseInt(pkt['N'])   || 0;   // 1=night, 0=day
-  const M  = parseInt(pkt['M'])   || 0;   // 1=motion, 0=none
+  const N  = parseInt(pkt['N'])   || 0;
+  const M  = parseInt(pkt['M'])   || 0;
   const rssi = pkt.rssi !== undefined ? pkt.rssi : null;
 
-  // Accumulated energy (Wh → kWh) using time delta since last packet
   const dtH = d.lastSeen ? (now - d.lastSeen) / 3_600_000 : 0;
   d.eAcc += (P * dtH) / 1000;
   d.lastSeen = now;
-  d.on = (N === 1); // light is ON when it's night
+  d.on = (N === 1);
 
   const pp = (arr,val) => { arr.push(val); if(arr.length > MAX_PTS) arr.shift(); };
-  pp(d.ts,       now);
-  pp(d.voltage,  V);
-  pp(d.current,  I);
-  pp(d.power,    P);
-  pp(d.energy,   parseFloat(d.eAcc.toFixed(4)));
-  pp(d.brightness, B);
-  pp(d.night,    N);
-  pp(d.motion,   M);
+  pp(d.ts, now); pp(d.voltage, V); pp(d.current, I); pp(d.power, P);
+  pp(d.energy, parseFloat(d.eAcc.toFixed(4)));
+  pp(d.brightness, B); pp(d.night, N); pp(d.motion, M);
 
   frameCount++;
   document.getElementById('frmCnt').textContent = `${frameCount} packets`;
 
-  // Update tiles if this node is selected
   if(curNode === 'ALL' || curNode === id) {
     updateTiles(d, id, rssi);
     GRAPH_KEYS.forEach(k => pushSpark(k, (d[k]||[])[d[k].length-1] ?? 0));
     if(modalKey) refreshModal();
   }
-
   renderMap();
-
-  // CSV
   if(csvLogging) {
-    csvRows.push([
-      new Date(now).toISOString(), id, loc, N, M, B, V, I, P,
-      d.eAcc.toFixed(4), rssi !== null ? rssi : ''
-    ].join(','));
+    csvRows.push([new Date(now).toISOString(), id, loc, N, M, B, V, I, P, d.eAcc.toFixed(4), rssi !== null ? rssi : ''].join(','));
     document.getElementById('csvInf').textContent = `CSV: Logging · ${csvRows.length} rows`;
   }
-
-  // Alerts
   if(I > 5)   pushAlert(`⚠ ${id}: High Current ${I.toFixed(2)} A`, 'warn');
   if(V < 200 && V > 0) pushAlert(`⚠ ${id}: Low Voltage ${V.toFixed(1)} V`, 'warn');
   if(M === 1 && N === 1) pushAlert(`🚶 ${id}: Motion at ${new Date(now).toLocaleTimeString('en-IN',{hour12:false})}`, 'ok');
+}
+
+// ═══════════════ INGEST PARSED (from Python logger) ═══════════════
+function ingestParsed(msg){
+  const id  = msg.node_id;
+  const loc = msg.location;   // LOCATION FROM PACKET DATA
+  ensureNode(id, loc);
+  refreshNodeDropdown(id);
+  const d   = nodeData[id];
+  const now = Date.now();
+
+  d.lastSeen = now;
+  d.on = (msg.night === 1);
+  d.location = loc || d.location;  // always update from packet
+
+  const pp = (arr,val) => { arr.push(val); if(arr.length > MAX_PTS) arr.shift(); };
+  pp(d.ts,         now);
+  pp(d.voltage,    msg.voltage);
+  pp(d.current,    msg.current);
+  pp(d.power,      msg.power);
+  pp(d.energy,     msg.energy_kwh);
+  pp(d.brightness, msg.brightness);
+  pp(d.night,      msg.night);
+  pp(d.motion,     msg.motion);
+
+  frameCount++;
+  document.getElementById('frmCnt').textContent = `${frameCount} packets`;
+
+  if(curNode==='ALL' || curNode===id){
+    updateTiles(d, id, msg.rssi);
+    GRAPH_KEYS.forEach(k => pushSpark(k, (d[k]||[])[d[k].length-1] ?? 0));
+    if(modalKey) refreshModal();
+  }
+  renderMap();
+  if(msg.current > 5)              pushAlert(`⚠ ${id}: High Current ${msg.current.toFixed(2)}A`,'warn');
+  if(msg.voltage < 200 && msg.voltage > 0) pushAlert(`⚠ ${id}: Low Voltage ${msg.voltage.toFixed(1)}V`,'warn');
+  if(msg.motion && msg.night)      pushAlert(`🚶 ${id}: Motion at ${msg.ts.split(' ')[1]}`,'ok');
 }
 
 // ═══════════════ TILE UPDATE ═══════════════
@@ -721,13 +1013,11 @@ function updateTiles(d, id, rssi) {
   setV('energy',   last('energy'), 4);
   document.getElementById('td-energy').textContent = `Since session start · Node: ${id}`;
 
-  // Brightness
   const B = last('brightness');
   setV('brightness', B, 0);
   document.getElementById('td-brightness').textContent = `Dimmer: ${B !== null ? B : '—'}% · RBDdimmer`;
   document.getElementById('brightFill').style.width = (B !== null ? Math.min(100,B) : 0) + '%';
 
-  // Night mode
   const N = last('night');
   const nightEl = document.getElementById('tv-night');
   const nightBadge = document.getElementById('night-badge-wrap');
@@ -741,36 +1031,34 @@ function updateTiles(d, id, rssi) {
     document.getElementById('td-night').className = `tile-sub ${N?'up':'nt'}`;
   }
 
-  // Motion
   const Mo = last('motion');
   const motionEl = document.getElementById('tv-motion');
   const motionBadge = document.getElementById('motion-badge-wrap');
   if(Mo !== null) {
     motionEl.textContent = Mo ? 'DETECTED' : 'CLEAR';
-    motionEl.style.color = Mo ? 'var(--orange)' : 'var(--muted)';
+    motionEl.style.color = Mo ? 'var(--orange)' : 'var(--text3)';
     motionBadge.innerHTML = Mo
       ? '<span class="badge" style="color:var(--orange)">🚶 Motion Active</span>'
-      : '<span class="badge" style="color:var(--muted)">— No Motion</span>';
+      : '<span class="badge" style="color:var(--text3)">— No Motion</span>';
     document.getElementById('td-motion').textContent = Mo
       ? `100% brightness active`
       : `Dimmed to ${last('brightness')||30}%`;
-    document.getElementById('td-motion').className = `tile-sub ${Mo?'warn':'nt'}`;
+    document.getElementById('td-motion').className = `tile-sub ${Mo?'up':'nt'}`;
   }
 
-  // Location tile
-  document.getElementById('tv-location').textContent = `${id}`;
-  document.getElementById('td-location').textContent = d.location;
+  // Location tile — reads from packet data automatically
+  document.getElementById('tv-location').textContent = id;
+  document.getElementById('td-location').textContent = d.location;   // from packet
   if(rssi !== null) document.getElementById('tv-rssi').textContent = rssi;
   document.getElementById('tv-pkts').textContent = frameCount;
 }
 
-// ═══════════════ GET CURRENT VIEW DATA ═══════════════
+// ═══════════════ GET VIEW DATA ═══════════════
 function getViewData(key) {
   if(curNode !== 'ALL') {
     const d = nodeData[curNode];
     return d ? { ts: d.ts.slice(), vals: (d[key]||[]).slice() } : { ts:[], vals:[] };
   }
-  // ALL: merge all nodes
   const pts = [];
   nodeOrder.forEach(id => {
     const d = nodeData[id];
@@ -800,7 +1088,7 @@ function onNodeChange() {
 
 // ═══════════════ MODAL ═══════════════
 function openModal(key) {
-  if(key === 'location') { return; } // location tile has no time-series graph
+  if(key === 'location') return;
   modalKey = key;
   document.getElementById('mTitle').textContent = (LABELS[key]||key).toUpperCase() + ' — DETAIL VIEW';
   document.getElementById('mNode').textContent = curNode;
@@ -810,47 +1098,50 @@ function openModal(key) {
 }
 function closeModal() {
   document.getElementById('mOv').classList.remove('open');
-  if(modalChart){modalChart.destroy();modalChart=null;}
-  modalKey=null;
+  if(modalChart){ modalChart.destroy(); modalChart=null; }
+  modalKey = null;
 }
 function refreshModal() {
   if(!modalKey) return;
+  const COLORS = getColors();
   const cutoff = Date.now() - modalRange*1000;
   const {ts, vals} = getViewData(modalKey);
   const pairs = ts.map((t,i)=>({t,v:vals[i]??0})).filter(x=>x.t>=cutoff);
   const lbls = pairs.map(x=>new Date(x.t).toLocaleTimeString('en-IN',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'}));
   const vs = pairs.map(x=>x.v);
+  const s = getComputedStyle(document.documentElement);
+  const textColor = s.getPropertyValue('--text2').trim();
+  const gridColor = s.getPropertyValue('--border').trim();
 
-  if(modalChart){modalChart.destroy();modalChart=null;}
-  const ctx=document.getElementById('mCanvas').getContext('2d');
-  const col = COLORS[modalKey]||'#00d4ff';
-
-  // Use step chart for binary values (night, motion)
+  if(modalChart){ modalChart.destroy(); modalChart=null; }
+  const ctx = document.getElementById('mCanvas').getContext('2d');
+  const col = COLORS[modalKey]||'#4f9eff';
   const isBinary = (modalKey==='night'||modalKey==='motion');
-  modalChart=new Chart(ctx,{
+
+  modalChart = new Chart(ctx, {
     type: isBinary ? 'bar' : 'line',
     data:{
-      labels:lbls,
+      labels: lbls,
       datasets:[{
-        label:LABELS[modalKey]||modalKey,
-        data:vs,
-        borderColor:col, borderWidth:2,
-        backgroundColor:col+(isBinary?'88':'15'),
-        pointRadius:vs.length<60&&!isBinary?2:0,
-        tension:0.4, fill:!isBinary
+        label: LABELS[modalKey]||modalKey,
+        data: vs,
+        borderColor: col, borderWidth: 2,
+        backgroundColor: col+(isBinary?'88':'15'),
+        pointRadius: vs.length<60&&!isBinary?2:0,
+        tension: 0.4, fill: !isBinary
       }]
     },
     options:{
       responsive:true, maintainAspectRatio:false, animation:false,
       plugins:{
-        legend:{labels:{color:'#c8e8f5',font:{family:'Rajdhani',size:12}}},
-        tooltip:{mode:'index',intersect:false}
+        legend:{ labels:{ color:textColor, font:{family:'DM Sans',size:12} } },
+        tooltip:{ mode:'index', intersect:false }
       },
       scales:{
-        x:{ticks:{color:'#3a6a84',font:{family:'Share Tech Mono',size:9},maxTicksLimit:10},grid:{color:'rgba(14,50,72,.5)'}},
+        x:{ ticks:{color:textColor,font:{family:'DM Mono',size:9},maxTicksLimit:10}, grid:{color:gridColor} },
         y:{
-          ticks:{color:col,font:{family:'Share Tech Mono',size:10}},
-          grid:{color:'rgba(14,50,72,.5)'},
+          ticks:{color:col,font:{family:'DM Mono',size:10}},
+          grid:{color:gridColor},
           ...(isBinary?{min:0,max:1,ticks:{stepSize:1,callback:v=>v?'YES':'NO'}}:{})
         }
       }
@@ -872,53 +1163,48 @@ function setMR(sec,btn){
   document.querySelectorAll('.rb').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active'); refreshModal();
 }
-document.getElementById('mOv').addEventListener('click',e=>{if(e.target===document.getElementById('mOv'))closeModal();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+document.getElementById('mOv').addEventListener('click',e=>{ if(e.target===document.getElementById('mOv')) closeModal(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
 
 // ═══════════════ SERIAL LOG ═══════════════
 function logS(line, cls=''){
-  const box=document.getElementById('serialLog');
-  const ts=new Date().toLocaleTimeString('en-IN',{hour12:false});
-  let c=cls||'log-data';
+  const box = document.getElementById('serialLog');
+  const ts = new Date().toLocaleTimeString('en-IN',{hour12:false});
+  let c = cls || 'log-data';
   if(!cls){
     if(line.match(/err|fail|failed/i))           c='log-err';
     else if(line.match(/warn|high|low voltage/i)) c='log-warn';
     else if(line.match(/ready|ok|connected|started|online|bridge/i)) c='log-ok';
     else if(line.includes('ID:'))                 c='log-data';
   }
-  const div=document.createElement('div');
-  div.innerHTML=`<span class="log-ts">[${ts}]</span> <span class="${c}">${esc(line)}</span>`;
+  const div = document.createElement('div');
+  div.innerHTML = `<span class="log-ts">[${ts}]</span> <span class="${c}">${esc(line)}</span>`;
   box.appendChild(div);
-  if(box.children.length>200) box.removeChild(box.firstChild);
-  box.scrollTop=box.scrollHeight;
+  if(box.children.length > 200) box.removeChild(box.firstChild);
+  box.scrollTop = box.scrollHeight;
 }
-function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 // ═══════════════ TICKER ═══════════════
-const alertLog=[];
-function pushAlert(msg,type='ok'){
-  alertLog.push({msg,type}); if(alertLog.length>24)alertLog.shift();
-  const half=alertLog.map(a=>`<span class="t-${a.type==='warn'?'warn':'ok'}">${esc(a.msg)}</span>`).join('<span class="t-mt"> · </span>');
-  document.getElementById('tickTrk').innerHTML=half+'<span style="margin:0 20px"></span>'+half;
+const alertLog = [];
+function pushAlert(msg, type='ok'){
+  alertLog.push({msg,type}); if(alertLog.length>24) alertLog.shift();
+  const half = alertLog.map(a=>`<span class="t-${a.type==='warn'?'warn':'ok'}">${esc(a.msg)}</span>`).join('<span class="t-mt"> · </span>');
+  document.getElementById('tickTrk').innerHTML = half+'<span style="margin:0 20px"></span>'+half;
 }
 
-// ═══════════════ BROWSER CSV (snapshot download) ═══════════════
-// Python logger.py writes the real ongoing CSV to disk.
-// This button lets the user download a snapshot of what the dashboard has received so far.
-// CSV_HDR is declared at the top of STATE section above.
-let csvSnapshot = [];  // filled from received WS packets
-
+// ═══════════════ CSV DOWNLOAD ═══════════════
 function downloadCSV(){
   if(!csvSnapshot.length){ logS('No data received yet','log-warn'); return; }
   const rows = [CSV_HDR, ...csvSnapshot];
   const blob = new Blob([rows.join('\n')], {type:'text/csv'});
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
-  a.download=`dashboard_snapshot_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+  a.download=`streetlight_snapshot_${new Date().toISOString().slice(0,10)}.csv`; a.click();
   logS(`Snapshot downloaded — ${csvSnapshot.length} rows`,'log-ok');
 }
 
 function clearAll(){
-  nodeOrder.length=0;
+  nodeOrder.length = 0;
   Object.keys(nodeData).forEach(k=>delete nodeData[k]);
   frameCount=0; csvSnapshot=[];
   document.getElementById('frmCnt').textContent='0 packets';
@@ -931,208 +1217,100 @@ function clearAll(){
   logS('All data cleared','log-warn');
 }
 
-// ═══════════════ WEBSOCKET — PYTHON BRIDGE ═══════════════
-let ws = null;
-let wsReconnectTimer = null;
-let wsConnected = false;
+// ═══════════════ WEBSOCKET ═══════════════
+let ws = null, wsReconnectTimer = null, wsConnected = false;
 
 function connectWS(){
   document.getElementById('connOv').style.display='none';
   const url = document.getElementById('wsUrl').value.trim() || 'ws://localhost:8765';
   _openWS(url);
 }
-
 function _openWS(url){
   if(ws){ try{ ws.close(); }catch(e){} }
   logS(`Connecting to Python logger at ${url} …`,'log-ok');
   setConn('connecting');
-
   ws = new WebSocket(url);
-
   ws.onopen = () => {
-    wsConnected = true;
-    clearTimeout(wsReconnectTimer);
-    setConn('ws');
-    logS('WebSocket connected — Python logger bridge is live','log-ok');
+    wsConnected=true; clearTimeout(wsReconnectTimer);
+    setConn('ws'); logS('WebSocket connected — Python logger bridge is live','log-ok');
     pushAlert('✔ Python logger connected','ok');
   };
-
   ws.onmessage = (evt) => {
-    let msg;
-    try { msg = JSON.parse(evt.data); } catch(e) { return; }
-
-    if(msg.type === 'status'){
-      // Python sent its startup status
-      updateLoggerBar({
-        connected: true,
-        csv: msg.csv,
-        rows: 0
-      });
-      logS(`Python logger: CSV file → ${msg.csv}`, 'log-ok');
-
-    } else if(msg.type === 'raw'){
-      // Raw serial line — show in log
+    let msg; try{ msg=JSON.parse(evt.data); }catch(e){ return; }
+    if(msg.type==='status'){
+      updateLoggerBar({connected:true, csv:msg.csv, rows:0});
+      logS(`Python logger: CSV file → ${msg.csv}`,'log-ok');
+    } else if(msg.type==='raw'){
       logS(msg.line);
-
-    } else if(msg.type === 'packet'){
-      // Fully parsed packet from Python — feed directly into dashboard
+    } else if(msg.type==='packet'){
       ingestParsed(msg);
-      // Update logger bar row count
-      updateLoggerBar({ rows: msg.row });
-      // Store snapshot row
-      csvSnapshot.push([
-        msg.ts, msg.node_id, msg.location,
-        msg.night, msg.motion, msg.brightness,
-        msg.voltage, msg.current, msg.power,
-        msg.energy_kwh, msg.rssi ?? ''
-      ].join(','));
-      document.getElementById('csvInf').textContent =
-        `${frameCount} packets received · ${msg.row} rows saved to CSV by Python`;
+      updateLoggerBar({rows:msg.row});
+      csvSnapshot.push([msg.ts,msg.node_id,msg.location,msg.night,msg.motion,msg.brightness,msg.voltage,msg.current,msg.power,msg.energy_kwh,msg.rssi??''].join(','));
+      document.getElementById('csvInf').textContent=`${frameCount} packets received · ${msg.row} rows saved to CSV`;
     }
   };
-
-  ws.onerror = () => {
-    if(!wsConnected) logS('Cannot reach Python logger — is logger.py running?','log-err');
-  };
-
+  ws.onerror = () => { if(!wsConnected) logS('Cannot reach Python logger — is logger.py running?','log-err'); };
   ws.onclose = () => {
-    wsConnected = false;
-    if(demoTimer) return;  // demo running, ignore
-    setConn('off');
-    logS('WebSocket disconnected — retrying in 5s…','log-warn');
-    updateLoggerBar({ connected: false });
-    wsReconnectTimer = setTimeout(()=>{
-      if(!wsConnected && !demoTimer){
-        const url = document.getElementById('wsUrl').value.trim() || 'ws://localhost:8765';
-        logS(`Reconnecting to ${url}…`);
-        _openWS(url);
-      }
-    }, 5000);
+    wsConnected=false; if(demoTimer) return;
+    setConn('off'); logS('WebSocket disconnected — retrying in 5s…','log-warn');
+    updateLoggerBar({connected:false});
+    wsReconnectTimer = setTimeout(()=>{ if(!wsConnected&&!demoTimer){ _openWS(document.getElementById('wsUrl').value.trim()||'ws://localhost:8765'); }}, 5000);
   };
 }
-
 function disconnectWS(){
   clearTimeout(wsReconnectTimer);
   if(ws){ try{ ws.close(); }catch(e){} ws=null; }
-  wsConnected=false;
-  setConn('off');
-  updateLoggerBar({connected:false});
+  wsConnected=false; setConn('off'); updateLoggerBar({connected:false});
   logS('Disconnected from Python logger','log-warn');
-}
-
-// ═══════════════ INGEST PARSED PACKET FROM PYTHON ═══════════════
-// Python already parsed everything — we just update state + UI
-function ingestParsed(msg){
-  const id  = msg.node_id;
-  const loc = msg.location;
-  ensureNode(id, loc);
-  const d   = nodeData[id];
-  const now = Date.now();
-
-  d.lastSeen = now;
-  d.on = (msg.night === 1);
-
-  const pp = (arr,val) => { arr.push(val); if(arr.length > MAX_PTS) arr.shift(); };
-  pp(d.ts,         now);
-  pp(d.voltage,    msg.voltage);
-  pp(d.current,    msg.current);
-  pp(d.power,      msg.power);
-  pp(d.energy,     msg.energy_kwh);
-  pp(d.brightness, msg.brightness);
-  pp(d.night,      msg.night);
-  pp(d.motion,     msg.motion);
-
-  frameCount++;
-  document.getElementById('frmCnt').textContent = `${frameCount} packets`;
-
-  if(curNode==='ALL' || curNode===id){
-    updateTiles(d, id, msg.rssi);
-    GRAPH_KEYS.forEach(k => pushSpark(k, (d[k]||[])[d[k].length-1] ?? 0));
-    if(modalKey) refreshModal();
-  }
-
-  renderMap();
-
-  if(msg.current > 5)              pushAlert(`⚠ ${id}: High Current ${msg.current.toFixed(2)}A`,'warn');
-  if(msg.voltage < 200 && msg.voltage > 0) pushAlert(`⚠ ${id}: Low Voltage ${msg.voltage.toFixed(1)}V`,'warn');
-  if(msg.motion && msg.night)      pushAlert(`🚶 ${id}: Motion at ${msg.ts.split(' ')[1]}`,'ok');
 }
 
 // ═══════════════ CONN STATE ═══════════════
 function setConn(mode){
   const dot=document.getElementById('cDot'), lbl=document.getElementById('cLbl');
   const bc=document.getElementById('btnConn'), bd=document.getElementById('btnDisc');
-  const bd2=document.getElementById('btnDemo');
-  dot.className='dot'; lbl.textContent='DISCONNECTED';
+  dot.className='c-dot'; lbl.textContent='DISCONNECTED';
   bc.style.display=''; bd.style.display='none';
-
-  if(mode==='ws'){
-    dot.className='dot on'; lbl.textContent='PYTHON LOGGER CONNECTED';
-    bc.style.display='none'; bd.style.display='';
-  }
-  if(mode==='connecting'){
-    dot.className='dot'; lbl.textContent='CONNECTING…';
-  }
-  if(mode==='demo'){
-    dot.className='dot demo'; lbl.textContent='DEMO MODE';
-    bc.style.display='none'; bd.style.display='';
-  }
-  if(mode==='off'){
-    if(demoTimer){ clearInterval(demoTimer); demoTimer=null; }
-    updateLoggerBar({connected:false});
-  }
+  if(mode==='ws'){     dot.className='c-dot on';   lbl.textContent='LIVE'; bc.style.display='none'; bd.style.display=''; }
+  if(mode==='connecting'){ dot.className='c-dot'; lbl.textContent='CONNECTING…'; }
+  if(mode==='demo'){   dot.className='c-dot demo'; lbl.textContent='DEMO'; bc.style.display='none'; bd.style.display=''; }
+  if(mode==='off'){ if(demoTimer){ clearInterval(demoTimer); demoTimer=null; } updateLoggerBar({connected:false}); }
 }
 
 // ═══════════════ LOGGER BAR ═══════════════
-let _lgCsvFile = '';
-let _lgRows = 0;
-
-function updateLoggerBar({connected, csv, rows} = {}){
-  const dot    = document.getElementById('lgDot');
-  const status = document.getElementById('lgStatus');
-  const path   = document.getElementById('lgPath');
-  const rowEl  = document.getElementById('lgRows');
-  const hint   = document.getElementById('lgHint');
-
-  if(connected === false){
-    dot.className='lg-dot';
-    status.innerHTML='Not connected — run <b>logger.py</b> then click <b>Connect Logger</b>';
-    path.textContent='';
-    rowEl.textContent=''; rowEl.className='lg-rows zero';
-    if(hint) hint.style.display='';
-    return;
+let _lgCsvFile='', _lgRows=0;
+function updateLoggerBar({connected, csv, rows}={}){
+  const dot=document.getElementById('lgDot'), status=document.getElementById('lgStatus');
+  const path=document.getElementById('lgPath'), rowEl=document.getElementById('lgRows');
+  const hint=document.getElementById('lgHint');
+  if(connected===false){
+    dot.className='lg-dot'; status.innerHTML='Not connected — run <b>logger.py</b> then click <b>Connect Logger</b>';
+    path.textContent=''; rowEl.textContent=''; rowEl.className='lg-rows zero';
+    if(hint) hint.style.display=''; return;
   }
-  if(csv) _lgCsvFile = csv;
-  if(rows !== undefined) _lgRows = rows;
-
-  dot.className='lg-dot active';
-  status.innerHTML='Writing to disk: ';
-  path.textContent=_lgCsvFile || '…';
-  rowEl.textContent=`${_lgRows} rows saved`;
-  rowEl.className='lg-rows';
-  if(hint) hint.style.display='none';
+  if(csv) _lgCsvFile=csv; if(rows!==undefined) _lgRows=rows;
+  dot.className='lg-dot active'; status.innerHTML='Writing to disk: ';
+  path.textContent=_lgCsvFile||'…'; rowEl.textContent=`${_lgRows} rows saved`;
+  rowEl.className='lg-rows'; if(hint) hint.style.display='none';
 }
 
 // ═══════════════ DEMO MODE ═══════════════
-// Simulates parsed packets (same structure Python would send)
+// Node locations are in the packet data — the dashboard reads them automatically
 const DEMO_NODES=[
-  {id:'SL-01',loc:'KIIT_GATE_1',  v:230,i:1.2, p:261,b:30, n:1,m:0},
-  {id:'SL-02',loc:'KIIT_GATE_2',  v:229,i:1.5, p:323,b:100,n:1,m:1},
-  {id:'SL-03',loc:'KIIT_LIBRARY', v:231,i:0.8, p:177,b:30, n:1,m:0},
-  {id:'SL-04',loc:'KIIT_HOSTEL_A',v:228,i:2.1, p:451,b:100,n:1,m:1},
-  {id:'SL-05',loc:'KIIT_SPORTS',  v:232,i:1.1, p:243,b:30, n:1,m:0},
-  {id:'SL-06',loc:'KIIT_ADMIN',   v:230,i:0.9, p:196,b:0,  n:0,m:0}
+  {id:'SL-01', loc:'IIT_GATE_1',   v:230, i:1.2, p:261, b:30,  n:1, m:0},
+  {id:'SL-02', loc:'IIT_GATE_2',   v:229, i:1.5, p:323, b:100, n:1, m:1},
+  {id:'SL-03', loc:'IIT_LIBRARY',  v:231, i:0.8, p:177, b:30,  n:1, m:0},
+  {id:'SL-04', loc:'IIT_HOSTEL_A', v:228, i:2.1, p:451, b:100, n:1, m:1},
+  {id:'SL-05', loc:'IIT_SPORTS',   v:232, i:1.1, p:243, b:30,  n:1, m:0},
+  {id:'SL-06', loc:'IIT_ADMIN',    v:230, i:0.9, p:196, b:0,   n:0, m:0}
 ];
 
 function startDemo(){
   document.getElementById('connOv').style.display='none';
-  disconnectWS();
-  setConn('demo');
+  disconnectWS(); setConn('demo');
   logS('Demo mode — simulating SL-01 … SL-06 (no Python logger)','log-ok');
   updateLoggerBar({connected:false});
   document.getElementById('lgStatus').innerHTML='Demo mode — CSV logging handled by Python when connected';
   let tick=0, eAcc={};
-
   demoTimer=setInterval(()=>{
     const node=DEMO_NODES[tick%DEMO_NODES.length];
     const r=(b,rng)=>parseFloat((b+(Math.random()-.5)*rng*2).toFixed(3));
@@ -1142,11 +1320,10 @@ function startDemo(){
     const id=node.id;
     if(!eAcc[id]) eAcc[id]=0;
     eAcc[id]+=parseFloat((pw*1.2/3600000/1000).toFixed(8));
-
     ingestParsed({
       ts:         new Date().toISOString().replace('T',' ').slice(0,19),
       node_id:    node.id,
-      location:   node.loc,
+      location:   node.loc,   // location comes from packet
       night:      node.n,
       motion:     m,
       brightness: b,
@@ -1162,15 +1339,9 @@ function startDemo(){
 }
 
 // ═══════════════ LOGGER HELP MODAL ═══════════════
-function showLoggerHelp(){
-  document.getElementById('loggerHelp').classList.add('open');
-}
-function closeLoggerHelp(){
-  document.getElementById('loggerHelp').classList.remove('open');
-}
-document.getElementById('loggerHelp').addEventListener('click',e=>{
-  if(e.target===document.getElementById('loggerHelp')) closeLoggerHelp();
-});
+function showLoggerHelp(){ document.getElementById('loggerHelp').classList.add('open'); }
+function closeLoggerHelp(){ document.getElementById('loggerHelp').classList.remove('open'); }
+document.getElementById('loggerHelp').addEventListener('click',e=>{ if(e.target===document.getElementById('loggerHelp')) closeLoggerHelp(); });
 
 // ═══════════════ INIT ═══════════════
 document.getElementById('connOv').style.display='flex';
