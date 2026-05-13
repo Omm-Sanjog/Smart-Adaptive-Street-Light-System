@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Smart Street Light Monitor</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#030a0f; --panel:#07141c; --panel2:#0b1e2a; --border:#0e3248;
+  --accent:#00d4ff; --green:#00ff9d; --orange:#ff6b35; --gold:#ffd700;
+  --purple:#c084fc; --warn:#ff4444; --text:#c8e8f5; --muted:#3a6a84;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;}
+body{
+  background:var(--bg); font-family:'Rajdhani',sans-serif; color:var(--text);
+  display:flex; flex-direction:column; height:100vh; overflow:hidden;
+}
+body::before{
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background-image:linear-gradient(rgba(0,212,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,.025) 1px,transparent 1px);
+  background-size:40px 40px;
+}
+
+/* HEADER */
+header{
+  flex-shrink:0; position:relative; z-index:10;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:8px 20px;
+  background:linear-gradient(180deg,rgba(0,212,255,.07) 0%,transparent 100%);
+  border-bottom:1px solid var(--border);
+}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo h1{font-family:'Orbitron',sans-serif;font-size:1rem;font-weight:900;color:var(--accent);letter-spacing:4px;text-shadow:0 0 14px var(--accent);}
+.logo p{font-size:.6rem;color:var(--muted);letter-spacing:3px;font-family:'Share Tech Mono',monospace;}
+.hdr-r{display:flex;align-items:center;gap:14px;}
+.sys-time{font-family:'Share Tech Mono',monospace;font-size:.82rem;color:var(--accent);text-align:right;}
+.sys-time small{display:block;font-size:.6rem;color:var(--muted);}
+.pill{display:flex;align-items:center;gap:6px;padding:4px 11px;border:1px solid var(--border);border-radius:20px;font-size:.68rem;font-family:'Share Tech Mono',monospace;}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--muted);box-shadow:0 0 5px var(--muted);animation:blink 2s ease-in-out infinite;}
+.dot.on{background:var(--green);box-shadow:0 0 7px var(--green);}
+.dot.demo{background:var(--gold);box-shadow:0 0 7px var(--gold);}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* TOOLBAR */
+.toolbar{
+  flex-shrink:0; position:relative; z-index:10;
+  display:flex; align-items:center; gap:7px; flex-wrap:wrap;
+  padding:6px 20px; border-bottom:1px solid rgba(14,50,72,.5);
+}
+.btn{
+  padding:4px 12px; border:1px solid var(--border); background:var(--panel);
+  color:var(--text); font-family:'Rajdhani',sans-serif; font-weight:600;
+  font-size:.72rem; letter-spacing:1px; cursor:pointer; text-transform:uppercase;
+  transition:all .15s; clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%);
+}
+.btn:hover{border-color:var(--accent);color:var(--accent);}
+.btn.green{border-color:var(--green);color:var(--green);}
+.btn.green:hover{background:rgba(0,255,157,.07);}
+.btn.red{border-color:var(--warn);color:var(--warn);}
+.btn.red:hover{background:rgba(255,68,68,.07);}
+.sep{width:1px;height:22px;background:var(--border);}
+select{background:var(--panel);border:1px solid var(--border);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:.72rem;padding:4px 7px;outline:none;cursor:pointer;}
+select.ns{color:var(--accent);}
+.lbl{font-size:.65rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+.csv-inf{font-family:'Share Tech Mono',monospace;font-size:.67rem;color:var(--muted);margin-left:auto;}
+.csv-inf.live{color:var(--green);}
+
+/* LOCAL LOGGER BAR */
+.logger-bar{
+  flex-shrink:0; position:relative; z-index:10;
+  display:flex; align-items:center; gap:10px;
+  padding:5px 20px;
+  background:rgba(0,255,157,.03);
+  border-bottom:1px solid rgba(0,255,157,.12);
+  font-family:'Share Tech Mono',monospace; font-size:.67rem;
+}
+.logger-bar .lg-label{
+  color:var(--green); font-weight:700; letter-spacing:2px; font-size:.62rem;
+  background:rgba(0,255,157,.1); border:1px solid rgba(0,255,157,.3);
+  padding:2px 8px; flex-shrink:0;
+}
+.logger-bar .lg-status{ color:var(--muted); }
+.logger-bar .lg-status b{ color:var(--green); }
+.logger-bar .lg-path{ color:var(--accent); font-size:.62rem; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.logger-bar .lg-rows{ color:var(--green); margin-left:auto; white-space:nowrap; }
+.logger-bar .lg-rows.zero{ color:var(--muted); }
+.logger-bar .lg-dot{ width:6px; height:6px; border-radius:50%; flex-shrink:0; background:var(--muted); }
+.logger-bar .lg-dot.active{ background:var(--green); box-shadow:0 0 6px var(--green); animation:blink 1.5s ease-in-out infinite; }
+.logger-bar .lg-hint{ color:var(--muted); font-size:.6rem; }
+.logger-bar .lg-hint a{ color:var(--accent); text-decoration:none; }
+.logger-bar .lg-hint a:hover{ text-decoration:underline; }
+
+/* MAIN */
+.main{flex:1;min-height:0;display:flex;position:relative;z-index:1;overflow:hidden;}
+
+/* TILES — 4 columns × 2 rows */
+.tiles{
+  flex:1;min-width:0;min-height:0;
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  grid-template-rows:repeat(2,1fr);
+  gap:10px; padding:12px;
+}
+
+/* TILE */
+.tile{
+  background:var(--panel); border:1px solid var(--border);
+  padding:12px 14px; cursor:pointer; position:relative; overflow:hidden;
+  transition:border-color .2s,box-shadow .2s,transform .15s;
+  display:flex; flex-direction:column;
+  clip-path:polygon(0 0,calc(100% - 9px) 0,100% 9px,100% 100%,9px 100%,0 calc(100% - 9px));
+  min-height:0;
+}
+.tile::after{content:'';position:absolute;top:0;right:0;border-left:9px solid transparent;border-top:9px solid var(--border);transition:border-top-color .2s;}
+.tile:hover{border-color:var(--accent);box-shadow:0 0 18px rgba(0,212,255,.14);transform:translateY(-1px);}
+.tile:hover::after{border-top-color:var(--accent);}
+
+.tile-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.tile-lbl{font-size:.58rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-family:'Share Tech Mono',monospace;}
+.tile-ico{font-size:.95rem;opacity:.7;}
+.tile-val{font-family:'Orbitron',sans-serif;font-size:1.45rem;font-weight:700;line-height:1;margin-bottom:2px;}
+.tile-unit{font-size:.58rem;color:var(--muted);font-family:'Share Tech Mono',monospace;}
+.tile-sub{font-size:.6rem;font-family:'Share Tech Mono',monospace;margin-top:3px;}
+.tile-sub.up{color:var(--green)}.tile-sub.dn{color:var(--warn)}.tile-sub.nt{color:var(--muted)}
+
+/* status badge tiles */
+.badge{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 9px;border-radius:2px;
+  font-family:'Share Tech Mono',monospace;font-size:.72rem;font-weight:700;
+  border:1px solid currentColor;margin-top:4px;
+}
+
+/* sparkline: fixed 26px, never grows */
+.sp-wrap{margin-top:auto;padding-top:6px;height:26px;flex-shrink:0;position:relative;}
+.sp-wrap canvas{position:absolute;inset:0;width:100%!important;height:26px!important;}
+
+/* brightness bar */
+.bright-bar{margin-top:auto;padding-top:8px;flex-shrink:0;}
+.bright-track{height:6px;background:rgba(255,215,0,.1);border-radius:3px;overflow:hidden;border:1px solid rgba(255,215,0,.2);}
+.bright-fill{height:100%;background:linear-gradient(90deg,#ffd700,#ff6b35);border-radius:3px;transition:width .4s ease;}
+
+/* tile accent colors */
+.tile[data-k="voltage"]  .tile-val{color:var(--gold);}
+.tile[data-k="current"]  .tile-val{color:var(--accent);}
+.tile[data-k="power"]    .tile-val{color:var(--orange);}
+.tile[data-k="energy"]   .tile-val{color:var(--green);}
+.tile[data-k="brightness"] .tile-val{color:var(--gold);}
+.tile[data-k="night"]    .tile-val{font-size:1rem;}
+.tile[data-k="motion"]   .tile-val{font-size:1rem;}
+.tile[data-k="location"] .tile-val{font-size:.85rem;color:var(--purple);}
+
+/* SIDEBAR */
+.sidebar{width:240px;flex-shrink:0;border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.node-map{padding:10px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.sec-title{font-family:'Orbitron',sans-serif;font-size:.6rem;color:var(--accent);letter-spacing:2px;margin-bottom:8px;}
+.node-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;}
+.nd{border:1px solid var(--border);border-radius:3px;padding:5px 3px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;transition:all .15s;font-family:'Share Tech Mono',monospace;font-size:.55rem;color:var(--muted);text-align:center;}
+.nd:hover,.nd.active{border-color:var(--accent);color:var(--accent);background:rgba(0,212,255,.05);}
+.nd.on{background:rgba(0,255,157,.03);}
+.nd.off{opacity:.5;}
+.nd-ico{font-size:.9rem;}
+.nd-loc{font-size:.5rem;color:var(--muted);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%;text-align:center;}
+.nd-leg{font-size:.55rem;margin-top:6px;}
+.nd-leg span{margin-right:6px;}
+
+/* serial */
+.serial-box{flex:1;min-height:0;display:flex;flex-direction:column;}
+.serial-hdr{padding:7px 10px;background:rgba(0,212,255,.04);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;flex-shrink:0;font-family:'Orbitron',sans-serif;font-size:.58rem;color:var(--accent);letter-spacing:2px;}
+.serial-hdr .cnt{margin-left:auto;color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:.6rem;}
+.serial-log{flex:1;min-height:0;overflow-y:auto;padding:7px 9px;font-family:'Share Tech Mono',monospace;font-size:.63rem;line-height:1.8;color:var(--muted);}
+.serial-log::-webkit-scrollbar{width:3px;}
+.serial-log::-webkit-scrollbar-thumb{background:var(--border);}
+.log-ts{color:var(--border);}.log-ok{color:var(--green);}.log-warn{color:var(--orange);}.log-err{color:var(--warn);}.log-data{color:#4a8fa8;}
+
+/* TICKER */
+.ticker{flex-shrink:0;height:26px;display:flex;align-items:center;overflow:hidden;border-top:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:.65rem;background:rgba(3,10,15,.97);position:relative;z-index:10;}
+.ticker-lbl{padding:0 10px;background:var(--accent);color:var(--bg);font-weight:700;height:100%;display:flex;align-items:center;flex-shrink:0;font-size:.62rem;letter-spacing:2px;}
+.ticker-inner{overflow:hidden;flex:1;}
+.ticker-track{display:flex;gap:40px;white-space:nowrap;animation:ticka 24s linear infinite;padding-left:16px;}
+@keyframes ticka{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.t-ok{color:var(--green)}.t-warn{color:var(--orange)}.t-mt{color:var(--muted)}
+
+/* CHART MODAL */
+.overlay{position:fixed;inset:0;background:rgba(3,10,15,.94);backdrop-filter:blur(8px);z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
+.overlay.open{opacity:1;pointer-events:all;}
+.modal{width:88vw;max-width:980px;height:72vh;background:var(--panel2);border:1px solid var(--accent);box-shadow:0 0 50px rgba(0,212,255,.16);display:flex;flex-direction:column;transform:scale(.96);transition:transform .2s;clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,18px 100%,0 calc(100% - 18px));}
+.overlay.open .modal{transform:scale(1);}
+.modal-hdr{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--border);}
+.modal-title{font-family:'Orbitron',sans-serif;font-size:.85rem;color:var(--accent);letter-spacing:3px;}
+.modal-meta{font-family:'Share Tech Mono',monospace;font-size:.65rem;color:var(--muted);margin-top:3px;}
+.modal-meta b{color:var(--text);}
+.modal-close{background:none;border:1px solid var(--border);color:var(--muted);cursor:pointer;width:28px;height:28px;font-size:.95rem;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
+.modal-close:hover{border-color:var(--warn);color:var(--warn);}
+.modal-chart{flex:1;min-height:0;padding:14px 18px;position:relative;}
+.modal-chart canvas{position:absolute;inset:14px 18px;}
+.modal-stats{flex-shrink:0;display:flex;border-top:1px solid var(--border);}
+.ms{flex:1;padding:8px 14px;border-right:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:.62rem;color:var(--muted);}
+.ms:last-child{border-right:none;}
+.ms b{display:block;font-family:'Orbitron',sans-serif;font-size:.95rem;color:var(--accent);margin-bottom:2px;}
+.mrng{display:flex;gap:3px;}
+.rb{padding:3px 9px;border:1px solid var(--border);background:none;color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:.62rem;cursor:pointer;transition:all .15s;}
+.rb.active,.rb:hover{border-color:var(--accent);color:var(--accent);}
+
+/* CONN MODAL */
+.conn-ov{position:fixed;inset:0;background:rgba(3,10,15,.97);z-index:2000;display:flex;align-items:center;justify-content:center;}
+.conn-box{background:var(--panel2);border:1px solid var(--accent);padding:26px;width:420px;text-align:center;clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,14px 100%,0 calc(100% - 14px));}
+.conn-box h2{font-family:'Orbitron',sans-serif;color:var(--accent);font-size:.88rem;letter-spacing:3px;margin-bottom:5px;}
+.conn-box p{color:var(--muted);font-size:.78rem;margin-bottom:16px;}
+.conn-opts{display:flex;flex-direction:column;gap:7px;margin-bottom:14px;}
+.copt{padding:10px 13px;border:1px solid var(--border);background:var(--panel);cursor:pointer;color:var(--text);font-family:'Rajdhani',sans-serif;font-size:.82rem;font-weight:600;transition:all .15s;display:flex;align-items:center;gap:9px;text-align:left;}
+.copt:hover{border-color:var(--accent);color:var(--accent);}
+.copt small{display:block;color:var(--muted);font-size:.67rem;font-weight:400;}
+.conn-note{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--muted);line-height:1.9;border:1px solid var(--border);padding:8px 10px;background:rgba(0,212,255,.03);}
+.conn-note b{color:var(--accent);}
+</style>
+</head>
+<body>
+
+<!-- CONNECTION MODAL -->
+<div class="conn-ov" id="connOv">
+  <div class="conn-box">
+    <h2>⚡ DASHBOARD</h2>
+    <p>Smart Street Light Monitor — Choose data source</p>
+    <div class="conn-opts">
+      <button class="copt" onclick="connectWS()">
+        <span style="font-size:1.3rem">🐍</span>
+        <div>
+          Connect via Python Logger <span style="color:var(--green);font-size:.65rem;font-family:'Share Tech Mono',monospace;margin-left:4px">RECOMMENDED</span>
+          <small>Run logger.py first → dashboard connects over WebSocket · Serial + CSV handled by Python</small>
+        </div>
+      </button>
+      <button class="copt" onclick="startDemo()">
+        <span style="font-size:1.3rem">🌐</span>
+        <div>Demo Mode — Simulated Live Data<small>No hardware needed · Simulates SL-01 … SL-06 nodes</small></div>
+      </button>
+    </div>
+    <div class="conn-note">
+      <b>How it works:</b><br>
+      1. Run <b>logger.py</b> in a terminal &nbsp;→&nbsp; it reads your ESP32 serial port<br>
+      2. logger.py writes CSV to disk + opens WebSocket at <b>ws://localhost:8765</b><br>
+      3. Click "Connect via Python Logger" → dashboard receives live data here<br><br>
+      Install once: &nbsp;<b>pip install pyserial websockets</b>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+      <circle cx="16" cy="16" r="15" stroke="#00d4ff" stroke-width="1" opacity=".4"/>
+      <path d="M16 4v6M16 22v6M4 16h6M22 16h6" stroke="#00d4ff" stroke-width="1.4" stroke-linecap="round"/>
+      <path d="M10 10l6-4.5 6 4.5v7.5l-6 4.5-6-4.5z" fill="rgba(0,212,255,.1)" stroke="#00d4ff" stroke-width="1.1"/>
+      <circle cx="16" cy="16" r="2" fill="#00d4ff"/>
+    </svg>
+    <div><h1>DASHBOARD</h1><p>Smart Street Light Monitor — KIIT University</p></div>
+  </div>
+  <div class="hdr-r">
+    <div class="sys-time"><div id="clkT"></div><small id="clkD"></small></div>
+    <div class="pill"><span class="dot" id="cDot"></span><span id="cLbl">DISCONNECTED</span></div>
+  </div>
+</header>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <span class="lbl">Source:</span>
+  <button class="btn" id="btnConn" onclick="connectWS()">🐍 Connect Logger</button>
+  <button class="btn red" id="btnDisc" onclick="disconnectWS()" style="display:none">✕ Disconnect</button>
+  <button class="btn" id="btnDemo" onclick="startDemo()">🌐 Demo</button>
+  <div class="sep"></div>
+  <span class="lbl">WS:</span>
+  <input id="wsUrl" value="ws://localhost:8765"
+    style="background:var(--panel);border:1px solid var(--border);color:var(--accent);font-family:'Share Tech Mono',monospace;font-size:.7rem;padding:4px 8px;outline:none;width:180px;">
+  <div class="sep"></div>
+  <span class="lbl">Node:</span>
+  <select class="ns" id="nodeSel" onchange="onNodeChange()">
+    <option value="ALL">ALL NODES</option>
+  </select>
+  <div class="sep"></div>
+  <button class="btn" onclick="downloadCSV()">💾 Download CSV</button>
+  <button class="btn" onclick="clearAll()">🗑 Clear</button>
+  <span class="csv-inf" id="csvInf">0 packets received</span>
+</div>
+
+<!-- LOCAL LOGGER STATUS BAR -->
+<div class="logger-bar" id="loggerBar">
+  <span class="lg-dot" id="lgDot"></span>
+  <span class="lg-label">PYTHON BRIDGE</span>
+  <span class="lg-status" id="lgStatus">Not connected — run <b>logger.py</b> then click <b>Connect Logger</b></span>
+  <span class="lg-path" id="lgPath"></span>
+  <span class="lg-rows zero" id="lgRows"></span>
+  <span class="lg-hint" id="lgHint"><a href="#" onclick="showLoggerHelp();return false;">Setup guide</a></span>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- 4×2 TILE GRID -->
+  <div class="tiles">
+
+    <!-- Voltage -->
+    <div class="tile" data-k="voltage" onclick="openModal('voltage')">
+      <div class="tile-head"><span class="tile-lbl">Voltage</span><span class="tile-ico">🔋</span></div>
+      <div class="tile-val" id="tv-voltage">—</div>
+      <div class="tile-unit">VOLTS (V) · PZEM-004T</div>
+      <div class="tile-sub nt" id="td-voltage">Awaiting packet…</div>
+      <div class="sp-wrap"><canvas id="sp-voltage"></canvas></div>
+    </div>
+
+    <!-- Current -->
+    <div class="tile" data-k="current" onclick="openModal('current')">
+      <div class="tile-head"><span class="tile-lbl">Current</span><span class="tile-ico">⚡</span></div>
+      <div class="tile-val" id="tv-current">—</div>
+      <div class="tile-unit">AMPERES (A) · PZEM-004T</div>
+      <div class="tile-sub nt" id="td-current">Awaiting packet…</div>
+      <div class="sp-wrap"><canvas id="sp-current"></canvas></div>
+    </div>
+
+    <!-- Power -->
+    <div class="tile" data-k="power" onclick="openModal('power')">
+      <div class="tile-head"><span class="tile-lbl">Active Power</span><span class="tile-ico">💡</span></div>
+      <div class="tile-val" id="tv-power">—</div>
+      <div class="tile-unit">WATTS (W) · PZEM-004T</div>
+      <div class="tile-sub nt" id="td-power">Awaiting packet…</div>
+      <div class="sp-wrap"><canvas id="sp-power"></canvas></div>
+    </div>
+
+    <!-- Energy Accumulated -->
+    <div class="tile" data-k="energy" onclick="openModal('energy')">
+      <div class="tile-head"><span class="tile-lbl">Energy Used</span><span class="tile-ico">🔆</span></div>
+      <div class="tile-val" id="tv-energy">—</div>
+      <div class="tile-unit">KILOWATT-HOUR (kWh) · Accumulated</div>
+      <div class="tile-sub nt" id="td-energy">Since session start</div>
+      <div class="sp-wrap"><canvas id="sp-energy"></canvas></div>
+    </div>
+
+    <!-- Brightness -->
+    <div class="tile" data-k="brightness" onclick="openModal('brightness')">
+      <div class="tile-head"><span class="tile-lbl">Brightness</span><span class="tile-ico">🌟</span></div>
+      <div class="tile-val" id="tv-brightness">—</div>
+      <div class="tile-unit">PERCENT (%) · Dimmer Level</div>
+      <div class="tile-sub nt" id="td-brightness">RBDdimmer PWM</div>
+      <div class="bright-bar">
+        <div class="bright-track"><div class="bright-fill" id="brightFill" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <!-- Night Mode -->
+    <div class="tile" data-k="night" onclick="openModal('night')">
+      <div class="tile-head"><span class="tile-lbl">Night Mode</span><span class="tile-ico">🌙</span></div>
+      <div class="tile-val" id="tv-night">—</div>
+      <div class="tile-unit">LDR SENSOR · Pin 34</div>
+      <div id="night-badge-wrap" style="margin-top:4px"></div>
+      <div class="tile-sub nt" id="td-night" style="margin-top:4px">Awaiting packet…</div>
+      <div class="sp-wrap"><canvas id="sp-night"></canvas></div>
+    </div>
+
+    <!-- Motion -->
+    <div class="tile" data-k="motion" onclick="openModal('motion')">
+      <div class="tile-head"><span class="tile-lbl">Motion</span><span class="tile-ico">🚶</span></div>
+      <div class="tile-val" id="tv-motion">—</div>
+      <div class="tile-unit">PIR SENSOR · Pin 27</div>
+      <div id="motion-badge-wrap" style="margin-top:4px"></div>
+      <div class="tile-sub nt" id="td-motion" style="margin-top:4px">Awaiting packet…</div>
+      <div class="sp-wrap"><canvas id="sp-motion"></canvas></div>
+    </div>
+
+    <!-- Location -->
+    <div class="tile" data-k="location" onclick="openModal('location')">
+      <div class="tile-head"><span class="tile-lbl">Node Location</span><span class="tile-ico">📍</span></div>
+      <div class="tile-val" id="tv-location" style="font-size:.85rem;color:var(--purple)">—</div>
+      <div class="tile-unit">NODE ID · LOCATION TAG</div>
+      <div class="tile-sub nt" id="td-location" style="margin-top:6px">LoRa 433 MHz</div>
+      <div style="margin-top:auto;padding-top:6px;flex-shrink:0">
+        <div style="font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--muted)">RSSI: <span id="tv-rssi" style="color:var(--accent)">—</span> dBm &nbsp;|&nbsp; Pkts: <span id="tv-pkts" style="color:var(--green)">0</span></div>
+      </div>
+    </div>
+
+  </div><!-- /tiles -->
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="node-map">
+      <div class="sec-title">⬡ NODE STATUS MAP</div>
+      <div class="node-grid" id="nodeGrid">
+        <div style="font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--muted);grid-column:1/-1;padding:4px 0">Waiting for nodes…</div>
+      </div>
+      <div class="nd-leg" style="margin-top:7px">
+        <span style="color:var(--green)">● ON</span>
+        <span style="color:var(--warn)">● OFF</span>
+        <span style="color:var(--accent)">● SEL</span>
+      </div>
+    </div>
+    <div class="serial-box">
+      <div class="serial-hdr">📡 RAW LORA LOG<span class="cnt" id="frmCnt">0 packets</span></div>
+      <div class="serial-log" id="serialLog">
+        <div><span class="log-ok">[SYSTEM] Dashboard ready. Connect receiver or use Demo Mode.</span></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- TICKER -->
+<div class="ticker">
+  <div class="ticker-lbl">ALERTS</div>
+  <div class="ticker-inner">
+    <div class="ticker-track" id="tickTrk">
+      <span class="t-ok">✔ System Online</span>
+      <span class="t-mt">LoRa 433MHz · 5-min packet interval</span>
+      <span class="t-mt">PZEM-004T · Voltage / Current / Power</span>
+      <span class="t-mt">RBDdimmer · Brightness 0–100%</span>
+      <span class="t-mt">LDR · Night detection</span>
+      <span class="t-mt">PIR · Motion detection</span>
+      <span class="t-ok">✔ CSV Logging Ready</span>
+      <!-- dup for loop -->
+      <span class="t-ok">✔ System Online</span>
+      <span class="t-mt">LoRa 433MHz · 5-min packet interval</span>
+      <span class="t-mt">PZEM-004T · Voltage / Current / Power</span>
+      <span class="t-mt">RBDdimmer · Brightness 0–100%</span>
+      <span class="t-mt">LDR · Night detection</span>
+      <span class="t-mt">PIR · Motion detection</span>
+      <span class="t-ok">✔ CSV Logging Ready</span>
+    </div>
+  </div>
+</div>
+
+<!-- LOGGER HELP MODAL -->
+<div class="overlay" id="loggerHelp" style="z-index:1500">
+  <div class="modal" style="height:auto;max-height:85vh;overflow-y:auto;width:700px;max-width:95vw">
+    <div class="modal-hdr">
+      <div>
+        <div class="modal-title">📁 LOCAL CSV LOGGER — SETUP GUIDE</div>
+        <div class="modal-meta">Writes data directly to your laptop · Zero browser limitations</div>
+      </div>
+      <button class="modal-close" onclick="closeLoggerHelp()">✕</button>
+    </div>
+    <div style="padding:20px 22px;font-family:'Share Tech Mono',monospace;font-size:.72rem;line-height:2;overflow-y:auto">
+
+      <div style="color:var(--accent);font-family:'Orbitron',sans-serif;font-size:.65rem;letter-spacing:2px;margin-bottom:10px">STEP 1 — INSTALL PYTHON DEPENDENCY</div>
+      <div style="background:var(--bg);border:1px solid var(--border);padding:10px 14px;margin-bottom:16px;color:var(--green)">pip install pyserial</div>
+
+      <div style="color:var(--accent);font-family:'Orbitron',sans-serif;font-size:.65rem;letter-spacing:2px;margin-bottom:10px">STEP 2 — RUN THE LOGGER</div>
+      <div style="background:var(--bg);border:1px solid var(--border);padding:10px 14px;margin-bottom:6px;color:var(--green)">python logger.py</div>
+      <div style="color:var(--muted);margin-bottom:16px">Place <span style="color:var(--accent)">logger.py</span> in the same folder as this HTML file. Run it in a terminal/CMD window. Keep it running while you use the dashboard.</div>
+
+      <div style="color:var(--accent);font-family:'Orbitron',sans-serif;font-size:.65rem;letter-spacing:2px;margin-bottom:10px">STEP 3 — SELECT YOUR PORT</div>
+      <div style="color:var(--muted);margin-bottom:16px">The script will list all available COM ports and let you pick one. Select the <span style="color:var(--gold)">receiver ESP32</span> (the one connected via USB). Use the same baud rate as set in the dashboard (default: 115200).</div>
+
+      <div style="color:var(--accent);font-family:'Orbitron',sans-serif;font-size:.65rem;letter-spacing:2px;margin-bottom:10px">WHAT IT DOES</div>
+      <div style="color:var(--muted);margin-bottom:6px">
+        ✔ Reads every raw line from the serial port<br>
+        ✔ Parses <span style="color:var(--accent)">ID:SL-01,Loc:...,N:,M:,B:,V:,I:,P:</span> packets<br>
+        ✔ Accumulates energy (kWh) per node using time deltas<br>
+        ✔ Writes a new timestamped CSV file on every run<br>
+        ✔ Flushes to disk after <span style="color:var(--green)">every single packet</span> — no data loss on crash<br>
+        ✔ Prints a live summary line per packet in the terminal
+      </div>
+
+      <div style="margin-top:16px;color:var(--accent);font-family:'Orbitron',sans-serif;font-size:.65rem;letter-spacing:2px;margin-bottom:10px">OUTPUT FILE</div>
+      <div style="background:var(--bg);border:1px solid var(--border);padding:10px 14px;margin-bottom:6px;color:var(--gold)">streetlight_2026-04-11_08-26-00.csv</div>
+      <div style="color:var(--muted)">Saved in the same folder as logger.py. A new file is created each time you start the logger.</div>
+
+      <div style="margin-top:16px;color:var(--accent);font-family:'Orbitron',sans-serif;font-size:.65rem;letter-spacing:2px;margin-bottom:10px">CSV COLUMNS</div>
+      <div style="background:var(--bg);border:1px solid var(--border);padding:10px 14px;color:var(--text);line-height:1.9">
+        <span style="color:var(--muted)">timestamp</span> · <span style="color:var(--muted)">node_id</span> · <span style="color:var(--muted)">location</span> ·
+        <span style="color:var(--purple)">night</span> · <span style="color:var(--orange)">motion</span> · <span style="color:var(--gold)">brightness_pct</span> ·
+        <span style="color:var(--gold)">voltage_V</span> · <span style="color:var(--accent)">current_A</span> · <span style="color:var(--orange)">power_W</span> ·
+        <span style="color:var(--green)">energy_kWh</span> · <span style="color:var(--muted)">rssi</span>
+      </div>
+
+      <div style="margin-top:16px;padding:10px 14px;border:1px solid rgba(255,215,0,.3);background:rgba(255,215,0,.04);color:var(--gold)">
+        ⚠ NOTE: The dashboard and logger.py both read the same serial port. You should only open one at a time — either use the dashboard's Web Serial connection OR run logger.py, not both simultaneously on the same port.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CHART MODAL -->
+<div class="overlay" id="mOv">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div>
+        <div class="modal-title" id="mTitle">—</div>
+        <div class="modal-meta">Node: <b id="mNode">—</b> &nbsp;|&nbsp; Location: <b id="mLoc">—</b> &nbsp;|&nbsp; Last packet: <b id="mTime">—</b></div>
+      </div>
+      <div style="display:flex;gap:7px;align-items:center">
+        <div class="mrng">
+          <button class="rb active" onclick="setMR(600,this)">10m</button>
+          <button class="rb" onclick="setMR(1800,this)">30m</button>
+          <button class="rb" onclick="setMR(3600,this)">1hr</button>
+          <button class="rb" onclick="setMR(99999,this)">All</button>
+        </div>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+    </div>
+    <div class="modal-chart"><canvas id="mCanvas"></canvas></div>
+    <div class="modal-stats">
+      <div class="ms"><b id="ms-min">—</b>MIN</div>
+      <div class="ms"><b id="ms-max">—</b>MAX</div>
+      <div class="ms"><b id="ms-avg">—</b>AVG</div>
+      <div class="ms"><b id="ms-cur">—</b>LATEST</div>
+      <div class="ms"><b id="ms-n">—</b>PACKETS</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// PACKET KEYS — mirrors Transmitter_Final.ino
+// Format: ID:SL-01,Loc:KIIT_GATE_1,N:1,M:0,B:30,V:230.5,I:1.23,P:284.5
+// ═══════════════════════════════════════════════
+const GRAPH_KEYS = ['voltage','current','power','energy','brightness','night','motion'];
+const LABELS = {
+  voltage:'Voltage (V)', current:'Current (A)', power:'Power (W)',
+  energy:'Energy (kWh)', brightness:'Brightness (%)',
+  night:'Night Mode (0/1)', motion:'Motion Detected (0/1)',
+  location:'Node / Location'
+};
+const COLORS = {
+  voltage:'#ffd700', current:'#00d4ff', power:'#ff6b35',
+  energy:'#00ff9d', brightness:'#ffd700',
+  night:'#c084fc', motion:'#00ff9d', location:'#c084fc'
+};
+
+const MAX_PTS = 200; // store up to 200 packets per node
+
+// ═══════════════ STATE ═══════════════
+let curNode = 'ALL';
+let frameCount = 0;
+let demoTimer = null;
+let modalKey = null, modalRange = 600, modalChart = null;
+let csvLogging = true;
+let csvRows = [];
+
+// nodeData keyed by node ID (e.g. "SL-01")
+// Each entry: { ts, voltage, current, power, energy, brightness, night, motion, location, eAcc, on, lastSeen }
+const nodeData = {};
+const nodeOrder = []; // insertion order
+
+const CSV_HDR = 'timestamp,node_id,location,night,motion,brightness_pct,voltage_V,current_A,power_W,energy_kWh,rssi';
+
+// ═══════════════ CLOCK ═══════════════
+(function clk(){
+  const n=new Date();
+  document.getElementById('clkT').textContent=n.toLocaleTimeString('en-IN',{hour12:false});
+  document.getElementById('clkD').textContent=n.toLocaleDateString('en-IN',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
+  setTimeout(clk,1000);
+})();
+
+// ═══════════════ NODE REGISTRATION ═══════════════
+function ensureNode(id, loc) {
+  if (nodeData[id]) {
+    nodeData[id].location = loc || nodeData[id].location;
+    return;
+  }
+  nodeData[id] = {
+    ts:[], voltage:[], current:[], power:[], energy:[], brightness:[],
+    night:[], motion:[], location: loc||id,
+    eAcc:0, on:true, lastSeen:null
+  };
+  nodeOrder.push(id);
+  // Add to node select dropdown
+  const sel = document.getElementById('nodeSel');
+  const opt = document.createElement('option');
+  opt.value = id; opt.textContent = id;
+  sel.appendChild(opt);
+  renderMap();
+}
+
+// ═══════════════ NODE MAP ═══════════════
+function renderMap() {
+  const g = document.getElementById('nodeGrid');
+  g.innerHTML = '';
+  if (nodeOrder.length === 0) {
+    g.innerHTML = '<div style="font-family:\'Share Tech Mono\',monospace;font-size:.6rem;color:var(--muted);grid-column:1/-1;padding:4px 0">Waiting for nodes…</div>';
+    return;
+  }
+  nodeOrder.forEach(id => {
+    const d = nodeData[id];
+    const el = document.createElement('div');
+    el.className = `nd ${d.on?'on':'off'} ${curNode===id?'active':''}`;
+    el.innerHTML = `<span class="nd-ico">${d.on?'🟢':'🔴'}</span><span>${id}</span><span class="nd-loc">${d.location}</span>`;
+    el.onclick = () => { document.getElementById('nodeSel').value = id; onNodeChange(); };
+    g.appendChild(el);
+  });
+}
+
+// ═══════════════ SPARKLINES ═══════════════
+const sparks = {};
+(function initSparks(){
+  GRAPH_KEYS.forEach(k => {
+    const c = document.getElementById(`sp-${k}`); if(!c) return;
+    sparks[k] = new Chart(c, {
+      type:'line',
+      data:{ labels:[], datasets:[{ data:[], borderColor:COLORS[k], borderWidth:1.5, pointRadius:0, fill:true, backgroundColor:COLORS[k]+'18', tension:0.4 }] },
+      options:{ responsive:false, animation:false, plugins:{legend:{display:false},tooltip:{enabled:false}}, scales:{x:{display:false},y:{display:false}} }
+    });
+  });
+})();
+
+function pushSpark(k, val) {
+  const sp = sparks[k]; if(!sp) return;
+  sp.data.labels.push('');
+  sp.data.datasets[0].data.push(val);
+  if(sp.data.labels.length > 40){ sp.data.labels.shift(); sp.data.datasets[0].data.shift(); }
+  sp.update('none');
+}
+
+// ═══════════════ PACKET PARSER ═══════════════
+// Handles: ID:SL-01,Loc:KIIT_GATE_1,N:1,M:0,B:30,V:230.5,I:1.23,P:284.5
+// Also handles optional RSSI suffix: ... RSSI:-85
+function parsePacket(line) {
+  const obj = {};
+  // extract RSSI if present (receiver may append it)
+  const rssiMatch = line.match(/RSSI:\s*(-?\d+)/i);
+  if (rssiMatch) { obj.rssi = parseInt(rssiMatch[1]); line = line.replace(/,?\s*RSSI:\s*-?\d+/i,''); }
+
+  const parts = line.split(',');
+  parts.forEach(p => {
+    const idx = p.indexOf(':');
+    if(idx < 0) return;
+    const key = p.slice(0,idx).trim();
+    const val = p.slice(idx+1).trim();
+    obj[key] = val;
+  });
+  return obj;
+}
+
+// ═══════════════ INGEST ═══════════════
+function ingest(line) {
+  line = line.trim(); if(!line) return;
+  logS(line);
+
+  // Must contain ID: to be a valid LoRa packet
+  if(!line.includes('ID:')) return;
+
+  const pkt = parsePacket(line);
+  const id  = pkt['ID']; if(!id) return;
+  const loc = pkt['Loc'] || id;
+
+  ensureNode(id, loc);
+  const d = nodeData[id];
+  const now = Date.now();
+
+  const V  = parseFloat(pkt['V']) || 0;
+  const I  = parseFloat(pkt['I']) || 0;
+  const P  = parseFloat(pkt['P']) || 0;
+  const B  = parseFloat(pkt['B']) || 0;
+  const N  = parseInt(pkt['N'])   || 0;   // 1=night, 0=day
+  const M  = parseInt(pkt['M'])   || 0;   // 1=motion, 0=none
+  const rssi = pkt.rssi !== undefined ? pkt.rssi : null;
+
+  // Accumulated energy (Wh → kWh) using time delta since last packet
+  const dtH = d.lastSeen ? (now - d.lastSeen) / 3_600_000 : 0;
+  d.eAcc += (P * dtH) / 1000;
+  d.lastSeen = now;
+  d.on = (N === 1); // light is ON when it's night
+
+  const pp = (arr,val) => { arr.push(val); if(arr.length > MAX_PTS) arr.shift(); };
+  pp(d.ts,       now);
+  pp(d.voltage,  V);
+  pp(d.current,  I);
+  pp(d.power,    P);
+  pp(d.energy,   parseFloat(d.eAcc.toFixed(4)));
+  pp(d.brightness, B);
+  pp(d.night,    N);
+  pp(d.motion,   M);
+
+  frameCount++;
+  document.getElementById('frmCnt').textContent = `${frameCount} packets`;
+
+  // Update tiles if this node is selected
+  if(curNode === 'ALL' || curNode === id) {
+    updateTiles(d, id, rssi);
+    GRAPH_KEYS.forEach(k => pushSpark(k, (d[k]||[])[d[k].length-1] ?? 0));
+    if(modalKey) refreshModal();
+  }
+
+  renderMap();
+
+  // CSV
+  if(csvLogging) {
+    csvRows.push([
+      new Date(now).toISOString(), id, loc, N, M, B, V, I, P,
+      d.eAcc.toFixed(4), rssi !== null ? rssi : ''
+    ].join(','));
+    document.getElementById('csvInf').textContent = `CSV: Logging · ${csvRows.length} rows`;
+  }
+
+  // Alerts
+  if(I > 5)   pushAlert(`⚠ ${id}: High Current ${I.toFixed(2)} A`, 'warn');
+  if(V < 200 && V > 0) pushAlert(`⚠ ${id}: Low Voltage ${V.toFixed(1)} V`, 'warn');
+  if(M === 1 && N === 1) pushAlert(`🚶 ${id}: Motion at ${new Date(now).toLocaleTimeString('en-IN',{hour12:false})}`, 'ok');
+}
+
+// ═══════════════ TILE UPDATE ═══════════════
+function updateTiles(d, id, rssi) {
+  const last = k => (d[k]||[]).length ? d[k][d[k].length-1] : null;
+  const prev = k => (d[k]||[]).length > 1 ? d[k][d[k].length-2] : null;
+
+  const setV = (eid, val, decimals=2) => {
+    const el = document.getElementById(`tv-${eid}`); if(!el) return;
+    el.textContent = val !== null ? (typeof val === 'number' ? val.toFixed(decimals) : val) : '—';
+  };
+  const setDelta = (eid, k, decimals=3) => {
+    const el = document.getElementById(`td-${eid}`); if(!el) return;
+    const l=last(k), p=prev(k); if(l===null||p===null) return;
+    const diff=l-p;
+    el.textContent=(diff>=0?'▲ +':'▼ ')+Math.abs(diff).toFixed(decimals);
+    el.className=`tile-sub ${diff>0?'up':diff<0?'dn':'nt'}`;
+  };
+
+  setV('voltage',  last('voltage'));  setDelta('voltage','voltage');
+  setV('current',  last('current'));  setDelta('current','current');
+  setV('power',    last('power'), 1); setDelta('power','power',1);
+  setV('energy',   last('energy'), 4);
+  document.getElementById('td-energy').textContent = `Since session start · Node: ${id}`;
+
+  // Brightness
+  const B = last('brightness');
+  setV('brightness', B, 0);
+  document.getElementById('td-brightness').textContent = `Dimmer: ${B !== null ? B : '—'}% · RBDdimmer`;
+  document.getElementById('brightFill').style.width = (B !== null ? Math.min(100,B) : 0) + '%';
+
+  // Night mode
+  const N = last('night');
+  const nightEl = document.getElementById('tv-night');
+  const nightBadge = document.getElementById('night-badge-wrap');
+  if(N !== null) {
+    nightEl.textContent = N ? 'NIGHT' : 'DAY';
+    nightEl.style.color = N ? 'var(--purple)' : 'var(--gold)';
+    nightBadge.innerHTML = N
+      ? '<span class="badge" style="color:var(--purple)">🌙 Lamp ON</span>'
+      : '<span class="badge" style="color:var(--gold)">☀️ Lamp OFF</span>';
+    document.getElementById('td-night').textContent = N ? 'LDR: LOW (dark)' : 'LDR: HIGH (bright)';
+    document.getElementById('td-night').className = `tile-sub ${N?'up':'nt'}`;
+  }
+
+  // Motion
+  const Mo = last('motion');
+  const motionEl = document.getElementById('tv-motion');
+  const motionBadge = document.getElementById('motion-badge-wrap');
+  if(Mo !== null) {
+    motionEl.textContent = Mo ? 'DETECTED' : 'CLEAR';
+    motionEl.style.color = Mo ? 'var(--orange)' : 'var(--muted)';
+    motionBadge.innerHTML = Mo
+      ? '<span class="badge" style="color:var(--orange)">🚶 Motion Active</span>'
+      : '<span class="badge" style="color:var(--muted)">— No Motion</span>';
+    document.getElementById('td-motion').textContent = Mo
+      ? `100% brightness active`
+      : `Dimmed to ${last('brightness')||30}%`;
+    document.getElementById('td-motion').className = `tile-sub ${Mo?'warn':'nt'}`;
+  }
+
+  // Location tile
+  document.getElementById('tv-location').textContent = `${id}`;
+  document.getElementById('td-location').textContent = d.location;
+  if(rssi !== null) document.getElementById('tv-rssi').textContent = rssi;
+  document.getElementById('tv-pkts').textContent = frameCount;
+}
+
+// ═══════════════ GET CURRENT VIEW DATA ═══════════════
+function getViewData(key) {
+  if(curNode !== 'ALL') {
+    const d = nodeData[curNode];
+    return d ? { ts: d.ts.slice(), vals: (d[key]||[]).slice() } : { ts:[], vals:[] };
+  }
+  // ALL: merge all nodes
+  const pts = [];
+  nodeOrder.forEach(id => {
+    const d = nodeData[id];
+    d.ts.forEach((t,i) => pts.push({ t, v: (d[key]||[])[i] ?? 0 }));
+  });
+  pts.sort((a,b)=>a.t-b.t);
+  const sliced = pts.slice(-MAX_PTS);
+  return { ts: sliced.map(x=>x.t), vals: sliced.map(x=>x.v) };
+}
+
+// ═══════════════ NODE CHANGE ═══════════════
+function onNodeChange() {
+  curNode = document.getElementById('nodeSel').value;
+  renderMap();
+  if(curNode !== 'ALL' && nodeData[curNode]) {
+    const d = nodeData[curNode];
+    updateTiles(d, curNode, null);
+    GRAPH_KEYS.forEach(k => {
+      const sp=sparks[k]; if(!sp) return;
+      sp.data.labels=d.ts.map(()=>'');
+      sp.data.datasets[0].data=(d[k]||[]).slice();
+      sp.update('none');
+    });
+  }
+  if(modalKey) refreshModal();
+}
+
+// ═══════════════ MODAL ═══════════════
+function openModal(key) {
+  if(key === 'location') { return; } // location tile has no time-series graph
+  modalKey = key;
+  document.getElementById('mTitle').textContent = (LABELS[key]||key).toUpperCase() + ' — DETAIL VIEW';
+  document.getElementById('mNode').textContent = curNode;
+  document.getElementById('mLoc').textContent = curNode !== 'ALL' ? (nodeData[curNode]?.location||'—') : 'All Nodes';
+  document.getElementById('mOv').classList.add('open');
+  refreshModal();
+}
+function closeModal() {
+  document.getElementById('mOv').classList.remove('open');
+  if(modalChart){modalChart.destroy();modalChart=null;}
+  modalKey=null;
+}
+function refreshModal() {
+  if(!modalKey) return;
+  const cutoff = Date.now() - modalRange*1000;
+  const {ts, vals} = getViewData(modalKey);
+  const pairs = ts.map((t,i)=>({t,v:vals[i]??0})).filter(x=>x.t>=cutoff);
+  const lbls = pairs.map(x=>new Date(x.t).toLocaleTimeString('en-IN',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'}));
+  const vs = pairs.map(x=>x.v);
+
+  if(modalChart){modalChart.destroy();modalChart=null;}
+  const ctx=document.getElementById('mCanvas').getContext('2d');
+  const col = COLORS[modalKey]||'#00d4ff';
+
+  // Use step chart for binary values (night, motion)
+  const isBinary = (modalKey==='night'||modalKey==='motion');
+  modalChart=new Chart(ctx,{
+    type: isBinary ? 'bar' : 'line',
+    data:{
+      labels:lbls,
+      datasets:[{
+        label:LABELS[modalKey]||modalKey,
+        data:vs,
+        borderColor:col, borderWidth:2,
+        backgroundColor:col+(isBinary?'88':'15'),
+        pointRadius:vs.length<60&&!isBinary?2:0,
+        tension:0.4, fill:!isBinary
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false, animation:false,
+      plugins:{
+        legend:{labels:{color:'#c8e8f5',font:{family:'Rajdhani',size:12}}},
+        tooltip:{mode:'index',intersect:false}
+      },
+      scales:{
+        x:{ticks:{color:'#3a6a84',font:{family:'Share Tech Mono',size:9},maxTicksLimit:10},grid:{color:'rgba(14,50,72,.5)'}},
+        y:{
+          ticks:{color:col,font:{family:'Share Tech Mono',size:10}},
+          grid:{color:'rgba(14,50,72,.5)'},
+          ...(isBinary?{min:0,max:1,ticks:{stepSize:1,callback:v=>v?'YES':'NO'}}:{})
+        }
+      }
+    }
+  });
+
+  if(vs.length){
+    const mn=Math.min(...vs),mx=Math.max(...vs),av=vs.reduce((a,b)=>a+b,0)/vs.length;
+    document.getElementById('ms-min').textContent=mn.toFixed(isBinary?0:3);
+    document.getElementById('ms-max').textContent=mx.toFixed(isBinary?0:3);
+    document.getElementById('ms-avg').textContent=av.toFixed(isBinary?2:3);
+    document.getElementById('ms-cur').textContent=vs[vs.length-1].toFixed(isBinary?0:3);
+    document.getElementById('ms-n').textContent=vs.length;
+    document.getElementById('mTime').textContent=lbls[lbls.length-1]||'—';
+  }
+}
+function setMR(sec,btn){
+  modalRange=sec;
+  document.querySelectorAll('.rb').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); refreshModal();
+}
+document.getElementById('mOv').addEventListener('click',e=>{if(e.target===document.getElementById('mOv'))closeModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+
+// ═══════════════ SERIAL LOG ═══════════════
+function logS(line, cls=''){
+  const box=document.getElementById('serialLog');
+  const ts=new Date().toLocaleTimeString('en-IN',{hour12:false});
+  let c=cls||'log-data';
+  if(!cls){
+    if(line.match(/err|fail|failed/i))           c='log-err';
+    else if(line.match(/warn|high|low voltage/i)) c='log-warn';
+    else if(line.match(/ready|ok|connected|started|online|bridge/i)) c='log-ok';
+    else if(line.includes('ID:'))                 c='log-data';
+  }
+  const div=document.createElement('div');
+  div.innerHTML=`<span class="log-ts">[${ts}]</span> <span class="${c}">${esc(line)}</span>`;
+  box.appendChild(div);
+  if(box.children.length>200) box.removeChild(box.firstChild);
+  box.scrollTop=box.scrollHeight;
+}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// ═══════════════ TICKER ═══════════════
+const alertLog=[];
+function pushAlert(msg,type='ok'){
+  alertLog.push({msg,type}); if(alertLog.length>24)alertLog.shift();
+  const half=alertLog.map(a=>`<span class="t-${a.type==='warn'?'warn':'ok'}">${esc(a.msg)}</span>`).join('<span class="t-mt"> · </span>');
+  document.getElementById('tickTrk').innerHTML=half+'<span style="margin:0 20px"></span>'+half;
+}
+
+// ═══════════════ BROWSER CSV (snapshot download) ═══════════════
+// Python logger.py writes the real ongoing CSV to disk.
+// This button lets the user download a snapshot of what the dashboard has received so far.
+// CSV_HDR is declared at the top of STATE section above.
+let csvSnapshot = [];  // filled from received WS packets
+
+function downloadCSV(){
+  if(!csvSnapshot.length){ logS('No data received yet','log-warn'); return; }
+  const rows = [CSV_HDR, ...csvSnapshot];
+  const blob = new Blob([rows.join('\n')], {type:'text/csv'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=`dashboard_snapshot_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+  logS(`Snapshot downloaded — ${csvSnapshot.length} rows`,'log-ok');
+}
+
+function clearAll(){
+  nodeOrder.length=0;
+  Object.keys(nodeData).forEach(k=>delete nodeData[k]);
+  frameCount=0; csvSnapshot=[];
+  document.getElementById('frmCnt').textContent='0 packets';
+  document.getElementById('csvInf').textContent='0 packets received';
+  const sel=document.getElementById('nodeSel');
+  while(sel.options.length>1) sel.remove(1);
+  curNode='ALL'; sel.value='ALL';
+  GRAPH_KEYS.forEach(k=>{const sp=sparks[k];if(!sp)return;sp.data.labels=[];sp.data.datasets[0].data=[];sp.update('none');});
+  renderMap();
+  logS('All data cleared','log-warn');
+}
+
+// ═══════════════ WEBSOCKET — PYTHON BRIDGE ═══════════════
+let ws = null;
+let wsReconnectTimer = null;
+let wsConnected = false;
+
+function connectWS(){
+  document.getElementById('connOv').style.display='none';
+  const url = document.getElementById('wsUrl').value.trim() || 'ws://localhost:8765';
+  _openWS(url);
+}
+
+function _openWS(url){
+  if(ws){ try{ ws.close(); }catch(e){} }
+  logS(`Connecting to Python logger at ${url} …`,'log-ok');
+  setConn('connecting');
+
+  ws = new WebSocket(url);
+
+  ws.onopen = () => {
+    wsConnected = true;
+    clearTimeout(wsReconnectTimer);
+    setConn('ws');
+    logS('WebSocket connected — Python logger bridge is live','log-ok');
+    pushAlert('✔ Python logger connected','ok');
+  };
+
+  ws.onmessage = (evt) => {
+    let msg;
+    try { msg = JSON.parse(evt.data); } catch(e) { return; }
+
+    if(msg.type === 'status'){
+      // Python sent its startup status
+      updateLoggerBar({
+        connected: true,
+        csv: msg.csv,
+        rows: 0
+      });
+      logS(`Python logger: CSV file → ${msg.csv}`, 'log-ok');
+
+    } else if(msg.type === 'raw'){
+      // Raw serial line — show in log
+      logS(msg.line);
+
+    } else if(msg.type === 'packet'){
+      // Fully parsed packet from Python — feed directly into dashboard
+      ingestParsed(msg);
+      // Update logger bar row count
+      updateLoggerBar({ rows: msg.row });
+      // Store snapshot row
+      csvSnapshot.push([
+        msg.ts, msg.node_id, msg.location,
+        msg.night, msg.motion, msg.brightness,
+        msg.voltage, msg.current, msg.power,
+        msg.energy_kwh, msg.rssi ?? ''
+      ].join(','));
+      document.getElementById('csvInf').textContent =
+        `${frameCount} packets received · ${msg.row} rows saved to CSV by Python`;
+    }
+  };
+
+  ws.onerror = () => {
+    if(!wsConnected) logS('Cannot reach Python logger — is logger.py running?','log-err');
+  };
+
+  ws.onclose = () => {
+    wsConnected = false;
+    if(demoTimer) return;  // demo running, ignore
+    setConn('off');
+    logS('WebSocket disconnected — retrying in 5s…','log-warn');
+    updateLoggerBar({ connected: false });
+    wsReconnectTimer = setTimeout(()=>{
+      if(!wsConnected && !demoTimer){
+        const url = document.getElementById('wsUrl').value.trim() || 'ws://localhost:8765';
+        logS(`Reconnecting to ${url}…`);
+        _openWS(url);
+      }
+    }, 5000);
+  };
+}
+
+function disconnectWS(){
+  clearTimeout(wsReconnectTimer);
+  if(ws){ try{ ws.close(); }catch(e){} ws=null; }
+  wsConnected=false;
+  setConn('off');
+  updateLoggerBar({connected:false});
+  logS('Disconnected from Python logger','log-warn');
+}
+
+// ═══════════════ INGEST PARSED PACKET FROM PYTHON ═══════════════
+// Python already parsed everything — we just update state + UI
+function ingestParsed(msg){
+  const id  = msg.node_id;
+  const loc = msg.location;
+  ensureNode(id, loc);
+  const d   = nodeData[id];
+  const now = Date.now();
+
+  d.lastSeen = now;
+  d.on = (msg.night === 1);
+
+  const pp = (arr,val) => { arr.push(val); if(arr.length > MAX_PTS) arr.shift(); };
+  pp(d.ts,         now);
+  pp(d.voltage,    msg.voltage);
+  pp(d.current,    msg.current);
+  pp(d.power,      msg.power);
+  pp(d.energy,     msg.energy_kwh);
+  pp(d.brightness, msg.brightness);
+  pp(d.night,      msg.night);
+  pp(d.motion,     msg.motion);
+
+  frameCount++;
+  document.getElementById('frmCnt').textContent = `${frameCount} packets`;
+
+  if(curNode==='ALL' || curNode===id){
+    updateTiles(d, id, msg.rssi);
+    GRAPH_KEYS.forEach(k => pushSpark(k, (d[k]||[])[d[k].length-1] ?? 0));
+    if(modalKey) refreshModal();
+  }
+
+  renderMap();
+
+  if(msg.current > 5)              pushAlert(`⚠ ${id}: High Current ${msg.current.toFixed(2)}A`,'warn');
+  if(msg.voltage < 200 && msg.voltage > 0) pushAlert(`⚠ ${id}: Low Voltage ${msg.voltage.toFixed(1)}V`,'warn');
+  if(msg.motion && msg.night)      pushAlert(`🚶 ${id}: Motion at ${msg.ts.split(' ')[1]}`,'ok');
+}
+
+// ═══════════════ CONN STATE ═══════════════
+function setConn(mode){
+  const dot=document.getElementById('cDot'), lbl=document.getElementById('cLbl');
+  const bc=document.getElementById('btnConn'), bd=document.getElementById('btnDisc');
+  const bd2=document.getElementById('btnDemo');
+  dot.className='dot'; lbl.textContent='DISCONNECTED';
+  bc.style.display=''; bd.style.display='none';
+
+  if(mode==='ws'){
+    dot.className='dot on'; lbl.textContent='PYTHON LOGGER CONNECTED';
+    bc.style.display='none'; bd.style.display='';
+  }
+  if(mode==='connecting'){
+    dot.className='dot'; lbl.textContent='CONNECTING…';
+  }
+  if(mode==='demo'){
+    dot.className='dot demo'; lbl.textContent='DEMO MODE';
+    bc.style.display='none'; bd.style.display='';
+  }
+  if(mode==='off'){
+    if(demoTimer){ clearInterval(demoTimer); demoTimer=null; }
+    updateLoggerBar({connected:false});
+  }
+}
+
+// ═══════════════ LOGGER BAR ═══════════════
+let _lgCsvFile = '';
+let _lgRows = 0;
+
+function updateLoggerBar({connected, csv, rows} = {}){
+  const dot    = document.getElementById('lgDot');
+  const status = document.getElementById('lgStatus');
+  const path   = document.getElementById('lgPath');
+  const rowEl  = document.getElementById('lgRows');
+  const hint   = document.getElementById('lgHint');
+
+  if(connected === false){
+    dot.className='lg-dot';
+    status.innerHTML='Not connected — run <b>logger.py</b> then click <b>Connect Logger</b>';
+    path.textContent='';
+    rowEl.textContent=''; rowEl.className='lg-rows zero';
+    if(hint) hint.style.display='';
+    return;
+  }
+  if(csv) _lgCsvFile = csv;
+  if(rows !== undefined) _lgRows = rows;
+
+  dot.className='lg-dot active';
+  status.innerHTML='Writing to disk: ';
+  path.textContent=_lgCsvFile || '…';
+  rowEl.textContent=`${_lgRows} rows saved`;
+  rowEl.className='lg-rows';
+  if(hint) hint.style.display='none';
+}
+
+// ═══════════════ DEMO MODE ═══════════════
+// Simulates parsed packets (same structure Python would send)
+const DEMO_NODES=[
+  {id:'SL-01',loc:'KIIT_GATE_1',  v:230,i:1.2, p:261,b:30, n:1,m:0},
+  {id:'SL-02',loc:'KIIT_GATE_2',  v:229,i:1.5, p:323,b:100,n:1,m:1},
+  {id:'SL-03',loc:'KIIT_LIBRARY', v:231,i:0.8, p:177,b:30, n:1,m:0},
+  {id:'SL-04',loc:'KIIT_HOSTEL_A',v:228,i:2.1, p:451,b:100,n:1,m:1},
+  {id:'SL-05',loc:'KIIT_SPORTS',  v:232,i:1.1, p:243,b:30, n:1,m:0},
+  {id:'SL-06',loc:'KIIT_ADMIN',   v:230,i:0.9, p:196,b:0,  n:0,m:0}
+];
+
+function startDemo(){
+  document.getElementById('connOv').style.display='none';
+  disconnectWS();
+  setConn('demo');
+  logS('Demo mode — simulating SL-01 … SL-06 (no Python logger)','log-ok');
+  updateLoggerBar({connected:false});
+  document.getElementById('lgStatus').innerHTML='Demo mode — CSV logging handled by Python when connected';
+  let tick=0, eAcc={};
+
+  demoTimer=setInterval(()=>{
+    const node=DEMO_NODES[tick%DEMO_NODES.length];
+    const r=(b,rng)=>parseFloat((b+(Math.random()-.5)*rng*2).toFixed(3));
+    const m=Math.random()>0.7?1:node.m;
+    const b=node.n?(m?100:30):0;
+    const pw=r(node.p,15);
+    const id=node.id;
+    if(!eAcc[id]) eAcc[id]=0;
+    eAcc[id]+=parseFloat((pw*1.2/3600000/1000).toFixed(8));
+
+    ingestParsed({
+      ts:         new Date().toISOString().replace('T',' ').slice(0,19),
+      node_id:    node.id,
+      location:   node.loc,
+      night:      node.n,
+      motion:     m,
+      brightness: b,
+      voltage:    r(node.v,2),
+      current:    r(node.i,.15),
+      power:      pw,
+      energy_kwh: parseFloat(eAcc[id].toFixed(6)),
+      rssi:       -(70+Math.floor(Math.random()*20)),
+      row:        tick+1
+    });
+    tick++;
+  }, 1200);
+}
+
+// ═══════════════ LOGGER HELP MODAL ═══════════════
+function showLoggerHelp(){
+  document.getElementById('loggerHelp').classList.add('open');
+}
+function closeLoggerHelp(){
+  document.getElementById('loggerHelp').classList.remove('open');
+}
+document.getElementById('loggerHelp').addEventListener('click',e=>{
+  if(e.target===document.getElementById('loggerHelp')) closeLoggerHelp();
+});
+
+// ═══════════════ INIT ═══════════════
+document.getElementById('connOv').style.display='flex';
+</script>
+</body>
+</html>
