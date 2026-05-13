@@ -204,6 +204,43 @@ The Python application acts as:
 
 # Folder Structure
 
+````text
+Smart-Adaptive-Street-Light-System/
+│
+├── Analysis_Report/
+│   ├── analysis_charts.png
+│   └── analysis_report.txt
+│
+├── Main/
+│   ├── analysis.py
+│   ├── data.csv
+│   ├── logger.py
+│   └── streetlight_dashboard.html
+│
+├── Streetlight/
+│   ├── Final_Codes/
+│   │   ├── Dashboard/
+│   │   │   ├── analysis.py
+│   │   │   ├── data.csv
+│   │   │   ├── logger.py
+│   │   │   └── streetlight_dashboard.html
+│   │   │
+│   │   ├── Receiver/
+│   │   │   └── receiver_code.ino
+│   │   │
+│   │   └── Transmitter/
+│   │       └── transmitter_code.ino
+│   │
+│   └── Testing_Codes/
+│       ├── LDR_Test/
+│       ├── Motion_Test/
+│       ├── LoRa_Test/
+│       ├── Relay_Test/
+│       └── PZEM_Test/
+│
+├── Smart Streetlight_Dashboard V2.html
+├── LICENSE
+└── README.md
 ```text
 Smart-Street-Light/
 │
@@ -224,7 +261,7 @@ Smart-Street-Light/
 │   └── architecture.png
 │
 └── README.md
-```
+````
 
 ---
 
@@ -266,6 +303,50 @@ Install using:
 ```bash
 pip install websockets pyserial pandas numpy matplotlib
 ```
+
+---
+
+# Communication Packet Format
+
+The transmitter sends structured LoRa packets in the following format:
+
+```text
+ID:SL-01,Loc:KIIT_GATE_1,N:1,M:0,B:30,V:230.5,I:0.45,P:103,RSSI:-72
+```
+
+## Packet Fields
+
+| Field | Meaning               |
+| ----- | --------------------- |
+| ID    | Node ID               |
+| Loc   | Node location         |
+| N     | Night status          |
+| M     | Motion detection      |
+| B     | Brightness percentage |
+| V     | Voltage               |
+| I     | Current               |
+| P     | Power                 |
+| RSSI  | Signal strength       |
+
+---
+
+# Dashboard and Data Analytics
+
+The dashboard system provides:
+
+* Live node monitoring
+* Real-time power visualization
+* CSV logging
+* WebSocket communication
+* Historical analysis support
+* Automatic energy calculations
+
+The analysis scripts generate:
+
+* Energy usage trends
+* Voltage/current graphs
+* Power consumption charts
+* Statistical reports
 
 ---
 
