@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Street Light Monitor</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════ THEME TOKENS ═══════════════ */
+:root {
+  --transition-theme: background .25s, color .25s, border-color .2s, box-shadow .2s;
+}
+
+[data-theme="dark"] {
+  --bg:           #0d0f14;
+  --surface:      #141720;
+  --surface2:     #1a1e2b;
+  --surface3:     #202436;
+  --border:       #252a3a;
+  --border2:      #2e3450;
+  --accent:       #4f9eff;
+  --accent-soft:  rgba(79,158,255,.1);
+  --green:        #34d399;
+  --green-soft:   rgba(52,211,153,.1);
+  --orange:       #fb923c;
+  --orange-soft:  rgba(251,146,60,.1);
+  --gold:         #fbbf24;
+  --gold-soft:    rgba(251,191,36,.1);
+  --purple:       #a78bfa;
+  --purple-soft:  rgba(167,139,250,.1);
+  --red:          #f87171;
+  --red-soft:     rgba(248,113,113,.1);
+  --text:         #e2e8f0;
+  --text2:        #94a3b8;
+  --text3:        #4a5568;
+  --shadow:       rgba(0,0,0,.4);
+  --overlay:      rgba(13,15,20,.92);
+  --grid-line:    rgba(79,158,255,.03);
+}
+
+[data-theme="light"] {
+  --bg:           #f0f2f7;
+  --surface:      #ffffff;
+  --surface2:     #f8fafc;
+  --surface3:     #eef1f8;
+  --border:       #dde3f0;
+  --border2:      #c8d0e4;
+  --accent:       #2563eb;
+  --accent-soft:  rgba(37,99,235,.08);
+  --green:        #059669;
+  --green-soft:   rgba(5,150,105,.08);
+  --orange:       #d97706;
+  --orange-soft:  rgba(217,119,6,.08);
+  --gold:         #b45309;
+  --gold-soft:    rgba(180,83,9,.08);
+  --purple:       #7c3aed;
+  --purple-soft:  rgba(124,58,237,.08);
+  --red:          #dc2626;
+  --red-soft:     rgba(220,38,38,.08);
+  --text:         #1e2030;
+  --text2:        #64748b;
+  --text3:        #94a3b8;
+  --shadow:       rgba(0,0,0,.1);
+  --overlay:      rgba(240,242,247,.95);
+  --grid-line:    rgba(37,99,235,.025);
+}
+
+/* ═══════════════ RESET & BASE ═══════════════ */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; overflow:hidden; }
+body {
+  background: var(--bg);
+  font-family: 'DM Sans', sans-serif;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  transition: var(--transition-theme);
+}
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 0;
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 36px 36px;
+}
+
+/* ═══════════════ HEADER ═══════════════ */
+header {
+  flex-shrink: 0; position: relative; z-index: 10;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 0 var(--border);
+}
+.logo { display: flex; align-items: center; gap: 12px; }
+.logo-icon {
+  width: 34px; height: 34px;
+  background: var(--accent);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem;
+  box-shadow: 0 0 16px rgba(79,158,255,.3);
+  flex-shrink: 0;
+}
+[data-theme="light"] .logo-icon { box-shadow: 0 0 16px rgba(37,99,235,.2); }
+.logo h1 {
+  font-family: 'Syne', sans-serif;
+  font-size: .92rem; font-weight: 800;
+  color: var(--text);
+  letter-spacing: .5px;
+}
+.logo p { font-size: .65rem; color: var(--text2); font-family: 'DM Mono', monospace; margin-top: 1px; }
+
+.hdr-right { display: flex; align-items: center; gap: 12px; }
+
+.sys-clock {
+  font-family: 'DM Mono', monospace;
+  font-size: .78rem; color: var(--text); text-align: right;
+}
+.sys-clock small { display: block; font-size: .6rem; color: var(--text2); margin-top: 1px; }
+
+/* ── Theme toggle ── */
+.theme-btn {
+  width: 36px; height: 36px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 1rem;
+  transition: all .2s;
+  flex-shrink: 0;
+}
+.theme-btn:hover { border-color: var(--accent); background: var(--accent-soft); }
+.icon-moon { display: block; }
+.icon-sun  { display: none; }
+[data-theme="light"] .icon-moon { display: none; }
+[data-theme="light"] .icon-sun  { display: block; }
+
+/* ── Conn pill ── */
+.conn-pill {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-family: 'DM Mono', monospace; font-size: .65rem;
+  color: var(--text2);
+  background: var(--surface2);
+}
+.c-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--text3);
+  flex-shrink: 0;
+  transition: background .3s, box-shadow .3s;
+}
+.c-dot.on   { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s ease-in-out infinite; }
+.c-dot.demo { background: var(--gold);  box-shadow: 0 0 6px var(--gold);  animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* ═══════════════ TOOLBAR ═══════════════ */
+.toolbar {
+  flex-shrink: 0; position: relative; z-index: 10;
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  padding: 7px 20px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+}
+.tbtn {
+  padding: 5px 13px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text2);
+  font-family: 'DM Sans', sans-serif;
+  font-size: .72rem; font-weight: 500;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.tbtn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.tbtn.danger:hover { border-color: var(--red); color: var(--red); background: var(--red-soft); }
+.tbtn.green-btn { border-color: var(--green); color: var(--green); }
+.tbtn.green-btn:hover { background: var(--green-soft); }
+.sep { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
+.lbl { font-size: .65rem; color: var(--text3); font-family: 'DM Mono', monospace; white-space: nowrap; }
+.tb-input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  font-family: 'DM Mono', monospace;
+  font-size: .68rem;
+  padding: 5px 9px;
+  outline: none;
+  border-radius: 6px;
+  width: 175px;
+  transition: border-color .15s;
+}
+.tb-input:focus { border-color: var(--accent); }
+.tb-select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: .68rem;
+  padding: 5px 9px;
+  outline: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.pkt-inf {
+  font-family: 'DM Mono', monospace;
+  font-size: .65rem; color: var(--text3);
+  margin-left: auto;
+}
+
+/* ═══════════════ LOGGER BAR ═══════════════ */
+.logger-bar {
+  flex-shrink: 0; position: relative; z-index: 10;
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 20px;
+  background: var(--green-soft);
+  border-bottom: 1px solid color-mix(in srgb, var(--green) 20%, transparent);
+  font-family: 'DM Mono', monospace; font-size: .64rem;
+}
+.lg-label {
+  font-size: .58rem; font-weight: 500; letter-spacing: 1px;
+  color: var(--green);
+  background: var(--green-soft);
+  border: 1px solid color-mix(in srgb, var(--green) 35%, transparent);
+  padding: 2px 7px; border-radius: 3px; flex-shrink: 0;
+}
+.lg-status { color: var(--text2); }
+.lg-status b { color: var(--green); }
+.lg-path { color: var(--accent); font-size: .6rem; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lg-rows { color: var(--green); margin-left: auto; white-space: nowrap; }
+.lg-rows.zero { color: var(--text3); }
+.lg-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; background: var(--text3); }
+.lg-dot.active { background: var(--green); box-shadow: 0 0 5px var(--green); animation: pulse 1.5s ease-in-out infinite; }
+.lg-hint a { color: var(--accent); text-decoration: none; }
+.lg-hint a:hover { text-decoration: underline; }
+
+/* ═══════════════ MAIN ═══════════════ */
+.main { flex: 1; min-height: 0; display: flex; position: relative; z-index: 1; overflow: hidden; }
+
+/* ═══════════════ TILES ═══════════════ */
+.tiles {
+  flex: 1; min-width: 0; min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 10px;
+  padding: 12px;
+}
+.tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  min-height: 0;
+  transition: border-color .2s, box-shadow .2s, transform .15s, background .25s;
+}
+.tile:hover {
+  border-color: var(--accent);
+  box-shadow: 0 4px 24px var(--shadow), 0 0 0 1px var(--accent-soft);
+  transform: translateY(-1px);
+}
+/* accent strip */
+.tile::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--t-color, var(--accent));
+  border-radius: 10px 10px 0 0;
+  opacity: .6;
+}
+
+.tile-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.tile-lbl { font-size: .62rem; font-weight: 500; letter-spacing: .8px; text-transform: uppercase; color: var(--text2); }
+.tile-ico { font-size: .95rem; opacity: .75; }
+.tile-val { font-family: 'Syne', sans-serif; font-size: 1.55rem; font-weight: 700; line-height: 1; color: var(--t-color, var(--accent)); margin-bottom: 2px; }
+.tile-unit { font-size: .56rem; color: var(--text3); font-family: 'DM Mono', monospace; letter-spacing: .5px; }
+.tile-sub { font-size: .62rem; font-family: 'DM Mono', monospace; margin-top: 4px; }
+.tile-sub.up { color: var(--green); }
+.tile-sub.dn { color: var(--red); }
+.tile-sub.nt { color: var(--text3); }
+
+/* tile accent colors via CSS var */
+.tile[data-k="voltage"]    { --t-color: var(--gold); }
+.tile[data-k="current"]    { --t-color: var(--accent); }
+.tile[data-k="power"]      { --t-color: var(--orange); }
+.tile[data-k="energy"]     { --t-color: var(--green); }
+.tile[data-k="brightness"] { --t-color: var(--gold); }
+.tile[data-k="night"]      { --t-color: var(--purple); }
+.tile[data-k="motion"]     { --t-color: var(--orange); }
+.tile[data-k="location"]   { --t-color: var(--purple); }
+
+/* special tile val sizes */
+.tile[data-k="night"]    .tile-val,
+.tile[data-k="motion"]   .tile-val { font-size: 1.1rem; }
+.tile[data-k="location"] .tile-val { font-size: .9rem; }
+
+/* Badge */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 4px;
+  font-family: 'DM Mono', monospace; font-size: .65rem;
+  border: 1px solid currentColor;
+  margin-top: 4px;
+}
+
+/* Sparkline */
+.sp-wrap { margin-top: auto; padding-top: 6px; height: 26px; flex-shrink: 0; position: relative; }
+.sp-wrap canvas { position: absolute; inset: 0; width: 100% !important; height: 26px !important; }
+
+/* Brightness bar */
+.bright-bar { margin-top: auto; padding-top: 8px; flex-shrink: 0; }
+.bright-track { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.bright-fill  { height: 100%; background: linear-gradient(90deg, var(--gold), var(--orange)); border-radius: 3px; transition: width .4s ease; }
+
+/* ═══════════════ SIDEBAR ═══════════════ */
+.sidebar { width: 230px; flex-shrink: 0; border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; background: var(--surface2); transition: background .25s; }
+.node-map { padding: 10px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.sec-title { font-family: 'Syne', sans-serif; font-size: .62rem; font-weight: 700; color: var(--accent); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px; }
+.node-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+.nd {
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 6px 4px; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  cursor: pointer; transition: all .15s;
+  font-family: 'DM Mono', monospace; font-size: .52rem; color: var(--text2); text-align: center;
+  background: var(--surface);
+}
+.nd:hover, .nd.active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.nd.off { opacity: .45; }
+.nd-ico { font-size: .85rem; }
+.nd-id  { font-size: .52rem; font-weight: 500; }
+.nd-loc { font-size: .48rem; color: var(--text3); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; }
+.nd-leg { font-size: .55rem; margin-top: 6px; display: flex; gap: 8px; }
+
+/* Serial log */
+.serial-box { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.serial-hdr {
+  padding: 7px 10px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+  font-family: 'Syne', sans-serif; font-size: .6rem; font-weight: 700;
+  color: var(--text2); letter-spacing: 1px; text-transform: uppercase;
+  background: var(--surface);
+}
+.serial-hdr .cnt { margin-left: auto; color: var(--text3); font-family: 'DM Mono', monospace; font-size: .6rem; font-weight: 400; }
+.serial-log { flex: 1; min-height: 0; overflow-y: auto; padding: 7px 9px; font-family: 'DM Mono', monospace; font-size: .61rem; line-height: 1.85; color: var(--text2); }
+.serial-log::-webkit-scrollbar { width: 3px; }
+.serial-log::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+.log-ts   { color: var(--text3); }
+.log-ok   { color: var(--green); }
+.log-warn { color: var(--orange); }
+.log-err  { color: var(--red); }
+.log-data { color: var(--accent); }
+
+/* ═══════════════ TICKER ═══════════════ */
+.ticker {
+  flex-shrink: 0; height: 28px; display: flex; align-items: center;
+  overflow: hidden; border-top: 1px solid var(--border);
+  font-family: 'DM Mono', monospace; font-size: .63rem;
+  background: var(--surface); position: relative; z-index: 10;
+}
+.ticker-lbl {
+  padding: 0 12px; background: var(--accent); color: #fff;
+  font-weight: 500; height: 100%; display: flex; align-items: center;
+  flex-shrink: 0; font-size: .6rem; letter-spacing: 1.5px; text-transform: uppercase;
+}
+.ticker-inner { overflow: hidden; flex: 1; }
+.ticker-track {
+  display: flex; gap: 36px; white-space: nowrap;
+  animation: ticka 24s linear infinite; padding-left: 16px;
+}
+@keyframes ticka { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+.t-ok   { color: var(--green); }
+.t-warn { color: var(--orange); }
+.t-mt   { color: var(--text3); }
+
+/* ═══════════════ CHART MODAL ═══════════════ */
+.overlay {
+  position: fixed; inset: 0;
+  background: var(--overlay);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+  width: 88vw; max-width: 940px; height: 70vh;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  box-shadow: 0 24px 80px var(--shadow);
+  display: flex; flex-direction: column;
+  transform: scale(.96); transition: transform .2s;
+  overflow: hidden;
+}
+.overlay.open .modal { transform: scale(1); }
+.modal-hdr {
+  flex-shrink: 0; display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; border-bottom: 1px solid var(--border);
+}
+.modal-title { font-family: 'Syne', sans-serif; font-size: .88rem; color: var(--text); font-weight: 700; letter-spacing: 1px; }
+.modal-meta  { font-family: 'DM Mono', monospace; font-size: .62rem; color: var(--text2); margin-top: 3px; }
+.modal-meta b { color: var(--text); }
+.modal-close {
+  background: none; border: 1px solid var(--border); color: var(--text2);
+  cursor: pointer; width: 30px; height: 30px; font-size: .9rem;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 6px; transition: all .15s; flex-shrink: 0;
+}
+.modal-close:hover { border-color: var(--red); color: var(--red); background: var(--red-soft); }
+.modal-chart { flex: 1; min-height: 0; padding: 14px 18px; position: relative; }
+.modal-chart canvas { position: absolute; inset: 14px 18px; }
+.modal-stats { flex-shrink: 0; display: flex; border-top: 1px solid var(--border); }
+.ms { flex: 1; padding: 10px 14px; border-right: 1px solid var(--border); font-family: 'DM Mono', monospace; font-size: .62rem; color: var(--text2); }
+.ms:last-child { border-right: none; }
+.ms b { display: block; font-family: 'Syne', sans-serif; font-size: .9rem; color: var(--accent); margin-bottom: 2px; font-weight: 700; }
+.mrng { display: flex; gap: 4px; }
+.rb {
+  padding: 4px 10px; border: 1px solid var(--border); background: none;
+  color: var(--text2); font-family: 'DM Mono', monospace; font-size: .6rem;
+  cursor: pointer; transition: all .15s; border-radius: 5px;
+}
+.rb.active, .rb:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+
+/* ═══════════════ CONN MODAL ═══════════════ */
+.conn-ov {
+  position: fixed; inset: 0;
+  background: var(--overlay);
+  z-index: 2000;
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(6px);
+}
+.conn-box {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 16px;
+  padding: 28px;
+  width: 420px;
+  box-shadow: 0 32px 80px var(--shadow);
+  text-align: center;
+}
+.conn-box h2 { font-family: 'Syne', sans-serif; color: var(--text); font-size: 1rem; font-weight: 800; margin-bottom: 6px; }
+.conn-box p { color: var(--text2); font-size: .78rem; margin-bottom: 20px; }
+.conn-opts { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.copt {
+  padding: 12px 14px; border: 1px solid var(--border); background: var(--surface2);
+  cursor: pointer; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: .8rem;
+  font-weight: 500; transition: all .15s; display: flex; align-items: center; gap: 10px;
+  text-align: left; border-radius: 8px;
+}
+.copt:hover { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.copt small { display: block; color: var(--text2); font-size: .65rem; font-weight: 400; margin-top: 2px; }
+.copt:hover small { color: var(--text2); }
+.conn-note {
+  font-family: 'DM Mono', monospace; font-size: .6rem; color: var(--text2); line-height: 2;
+  border: 1px solid var(--border); padding: 10px 12px;
+  background: var(--surface2); border-radius: 8px; text-align: left;
+}
+.conn-note b { color: var(--accent); }
+
+/* ═══════════════ LOGGER HELP MODAL ═══════════════ */
+.help-body { padding: 20px 22px; font-family: 'DM Mono', monospace; font-size: .7rem; line-height: 2; overflow-y: auto; color: var(--text2); }
+.help-body .h-section { color: var(--accent); font-family: 'Syne', sans-serif; font-size: .65rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin: 16px 0 8px; }
+.help-body .h-code { background: var(--bg); border: 1px solid var(--border); padding: 10px 14px; border-radius: 6px; color: var(--green); }
+</style>
+</head>
+<body>
+
+<!-- CONNECTION MODAL -->
+<div class="conn-ov" id="connOv">
+  <div class="conn-box">
+    <h2>⚡ Smart Street Light Monitor</h2>
+    <p>Choose your data source to begin</p>
+    <div class="conn-opts">
+      <button class="copt" onclick="connectWS()">
+        <span style="font-size:1.4rem">🐍</span>
+        <div>
+          Connect via Python Logger <span style="color:var(--green);font-size:.62rem;font-family:'DM Mono',monospace;margin-left:4px">RECOMMENDED</span>
+          <small>Run logger.py → dashboard connects over WebSocket · Serial + CSV handled by Python</small>
+        </div>
+      </button>
+      <button class="copt" onclick="startDemo()">
+        <span style="font-size:1.4rem">🌐</span>
+        <div>Demo Mode — Simulated Live Data<small>No hardware needed · Simulates SL-01 … SL-06 nodes</small></div>
+      </button>
+    </div>
+    <div class="conn-note">
+      <b>How it works:</b><br>
+      1. Run <b>logger.py</b> in a terminal → it reads your ESP32 serial port<br>
+      2. logger.py writes CSV to disk + opens WebSocket at <b>ws://localhost:8765</b><br>
+      3. Click "Connect via Python Logger" → dashboard receives live data<br><br>
+      Install once: &nbsp;<b>pip install pyserial websockets</b>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">💡</div>
+    <div>
+      <h1>STREET LIGHT MONITOR</h1>
+      <p>Smart Grid Dashboard</p>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <div class="sys-clock">
+      <div id="clkT"></div>
+      <small id="clkD"></small>
+    </div>
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Toggle light/dark mode">
+      <span class="icon-moon">🌙</span>
+      <span class="icon-sun">☀️</span>
+    </button>
+    <div class="conn-pill">
+      <span class="c-dot" id="cDot"></span>
+      <span id="cLbl">DISCONNECTED</span>
+    </div>
+  </div>
+</header>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <span class="lbl">Source:</span>
+  <button class="tbtn" id="btnConn" onclick="connectWS()">🐍 Connect Logger</button>
+  <button class="tbtn danger" id="btnDisc" onclick="disconnectWS()" style="display:none">✕ Disconnect</button>
+  <button class="tbtn" onclick="startDemo()">🌐 Demo</button>
+  <div class="sep"></div>
+  <span class="lbl">WS:</span>
+  <input id="wsUrl" class="tb-input" value="ws://localhost:8765">
+  <div class="sep"></div>
+  <span class="lbl">Node:</span>
+  <select class="tb-select" id="nodeSel" onchange="onNodeChange()">
+    <option value="ALL">ALL NODES</option>
+  </select>
+  <div class="sep"></div>
+  <button class="tbtn" onclick="downloadCSV()">💾 Export CSV</button>
+  <button class="tbtn danger" onclick="clearAll()">🗑 Clear</button>
+  <span class="pkt-inf" id="csvInf">0 packets received</span>
+</div>
+
+<!-- LOGGER STATUS BAR -->
+<div class="logger-bar" id="loggerBar">
+  <span class="lg-dot" id="lgDot"></span>
+  <span class="lg-label">PYTHON BRIDGE</span>
+  <span class="lg-status" id="lgStatus">Not connected — run <b>logger.py</b> then click <b>Connect Logger</b></span>
+  <span class="lg-path" id="lgPath"></span>
+  <span class="lg-rows zero" id="lgRows"></span>
+  <span class="lg-hint" id="lgHint"><a href="#" onclick="showLoggerHelp();return false;">Setup guide</a></span>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- 4×2 TILE GRID -->
+  <div class="tiles">
+
+    <!-- Voltage -->
+    <div class="tile" data-k="voltage" onclick="openModal('voltage')">
+      <div class="tile-head"><span class="tile-lbl">Voltage</span><span class="tile-ico">🔋</span></div>
+      <div class="tile-val" id="tv-voltage">—</div>
+      <div class="tile-unit">VOLTS (V) · PZEM-004T</div>
+      <div class="tile-sub nt" id="td-voltage">Awaiting packet…</div>
+      <div class="sp-wrap"><canvas id="sp-voltage"></canvas></div>
+    </div>
+
+    <!-- Current -->
+    <div class="tile" data-k="current" onclick="openModal('current')">
+      <div class="tile-head"><span class="tile-lbl">Current</span><span class="tile-ico">⚡</span></div>
+      <div class="tile-val" id="tv-current">—</div>
+      <div class="tile-unit">AMPERES (A) · PZEM-004T</div>
+      <div class="tile-sub nt" id="td-current">Awaiting packet…</div>
+      <div class="sp-wrap"><canvas id="sp-current"></canvas></div>
+    </div>
+
+    <!-- Power -->
+    <div class="tile" data-k="power" onclick="openModal('power')">
+      <div class="tile-head"><span class="tile-lbl">Active Power</span><span class="tile-ico">💡</span></div>
+      <div class="tile-val" id="tv-power">—</div>
+      <div class="tile-unit">WATTS (W) · PZEM-004T</div>
+      <div class="tile-sub nt" id="td-power">Awaiting packet…</div>
+      <div class="sp-wrap"><canvas id="sp-power"></canvas></div>
+    </div>
+
+    <!-- Energy -->
+    <div class="tile" data-k="energy" onclick="openModal('energy')">
+      <div class="tile-head"><span class="tile-lbl">Energy Used</span><span class="tile-ico">🔆</span></div>
+      <div class="tile-val" id="tv-energy">—</div>
+      <div class="tile-unit">KILOWATT-HOUR (kWh) · Accumulated</div>
+      <div class="tile-sub nt" id="td-energy">Since session start</div>
+      <div class="sp-wrap"><canvas id="sp-energy"></canvas></div>
+    </div>
+
+    <!-- Brightness -->
+    <div class="tile" data-k="brightness" onclick="openModal('brightness')">
+      <div class="tile-head"><span class="tile-lbl">Brightness</span><span class="tile-ico">🌟</span></div>
+      <div class="tile-val" id="tv-brightness">—</div>
+      <div class="tile-unit">PERCENT (%) · Dimmer Level</div>
+      <div class="tile-sub nt" id="td-brightness">RBDdimmer PWM</div>
+      <div class="bright-bar">
+        <div class="bright-track"><div class="bright-fill" id="brightFill" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <!-- Night Mode -->
+    <div class="tile" data-k="night" onclick="openModal('night')">
+      <div class="tile-head"><span class="tile-lbl">Night Mode</span><span class="tile-ico">🌙</span></div>
+      <div class="tile-val" id="tv-night">—</div>
+      <div class="tile-unit">LDR SENSOR · Pin 34</div>
+      <div id="night-badge-wrap" style="margin-top:4px"></div>
+      <div class="tile-sub nt" id="td-night" style="margin-top:4px">Awaiting packet…</div>
+      <div class="sp-wrap"><canvas id="sp-night"></canvas></div>
+    </div>
+
+    <!-- Motion -->
+    <div class="tile" data-k="motion" onclick="openModal('motion')">
+      <div class="tile-head"><span class="tile-lbl">Motion</span><span class="tile-ico">🚶</span></div>
+      <div class="tile-val" id="tv-motion">—</div>
+      <div class="tile-unit">PIR SENSOR · Pin 27</div>
+      <div id="motion-badge-wrap" style="margin-top:4px"></div>
+      <div class="tile-sub nt" id="td-motion" style="margin-top:4px">Awaiting packet…</div>
+      <div class="sp-wrap"><canvas id="sp-motion"></canvas></div>
+    </div>
+
+    <!-- Location — auto-populated from received data -->
+    <div class="tile" data-k="location">
+      <div class="tile-head"><span class="tile-lbl">Node Location</span><span class="tile-ico">📍</span></div>
+      <div class="tile-val" id="tv-location">—</div>
+      <div class="tile-unit">NODE ID · LOCATION TAG</div>
+      <div class="tile-sub nt" id="td-location" style="margin-top:6px">Auto-detected from packet</div>
+      <div style="margin-top:auto;padding-top:6px;flex-shrink:0">
+        <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--text3)">
+          RSSI: <span id="tv-rssi" style="color:var(--accent)">—</span> dBm &nbsp;·&nbsp;
+          Pkts: <span id="tv-pkts" style="color:var(--green)">0</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tiles -->
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="node-map">
+      <div class="sec-title">Node Status Map</div>
+      <div class="node-grid" id="nodeGrid">
+        <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--text3);grid-column:1/-1;padding:4px 0">Waiting for nodes…</div>
+      </div>
+      <div class="nd-leg" style="margin-top:8px">
+        <span style="color:var(--green)">● ON</span>
+        <span style="color:var(--red)">● OFF</span>
+        <span style="color:var(--accent)">● SEL</span>
+      </div>
+    </div>
+    <div class="serial-box">
+      <div class="serial-hdr">
+        📡 LoRa Log
+        <span class="cnt" id="frmCnt">0 packets</span>
+      </div>
+      <div class="serial-log" id="serialLog">
+        <div><span class="log-ok">[SYSTEM] Dashboard ready. Connect receiver or use Demo Mode.</span></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- TICKER -->
+<div class="ticker">
+  <div class="ticker-lbl">Alerts</div>
+  <div class="ticker-inner">
+    <div class="ticker-track" id="tickTrk">
+      <span class="t-ok">✔ System Online</span>
+      <span class="t-mt">LoRa 433MHz · 5-min packet interval</span>
+      <span class="t-mt">PZEM-004T · Voltage / Current / Power</span>
+      <span class="t-mt">RBDdimmer · Brightness 0–100%</span>
+      <span class="t-mt">LDR · Night detection</span>
+      <span class="t-mt">PIR · Motion detection</span>
+      <span class="t-ok">✔ CSV Logging Ready</span>
+      <span class="t-ok">✔ System Online</span>
+      <span class="t-mt">LoRa 433MHz · 5-min packet interval</span>
+      <span class="t-mt">PZEM-004T · Voltage / Current / Power</span>
+      <span class="t-mt">RBDdimmer · Brightness 0–100%</span>
+      <span class="t-mt">LDR · Night detection</span>
+      <span class="t-mt">PIR · Motion detection</span>
+      <span class="t-ok">✔ CSV Logging Ready</span>
+    </div>
+  </div>
+</div>
+
+<!-- LOGGER HELP MODAL -->
+<div class="overlay" id="loggerHelp" style="z-index:1500">
+  <div class="modal" style="height:auto;max-height:85vh;overflow-y:auto;width:680px;max-width:95vw">
+    <div class="modal-hdr">
+      <div>
+        <div class="modal-title">📁 LOCAL CSV LOGGER — SETUP GUIDE</div>
+        <div class="modal-meta">Writes data directly to your laptop · Zero browser limitations</div>
+      </div>
+      <button class="modal-close" onclick="closeLoggerHelp()">✕</button>
+    </div>
+    <div class="help-body">
+      <div class="h-section">Step 1 — Install Python Dependency</div>
+      <div class="h-code">pip install pyserial websockets</div>
+      <div class="h-section">Step 2 — Run the Logger</div>
+      <div class="h-code">python logger.py</div>
+      <div style="margin-top:6px">Place <b style="color:var(--accent)">logger.py</b> in the same folder as this HTML file. Keep it running while using the dashboard.</div>
+      <div class="h-section">Step 3 — Select your Port</div>
+      <div>The script will list available COM ports. Select the <b style="color:var(--gold)">receiver ESP32</b>. Use the same baud rate as in the dashboard (default: 115200).</div>
+      <div class="h-section">What It Does</div>
+      <div>✔ Reads every raw line from the serial port<br>
+      ✔ Parses <span style="color:var(--accent)">ID:SL-01,Loc:...,N:,M:,B:,V:,I:,P:</span> packets<br>
+      ✔ Accumulates energy (kWh) per node using time deltas<br>
+      ✔ Writes a timestamped CSV file on every run<br>
+      ✔ Flushes to disk after <span style="color:var(--green)">every single packet</span></div>
+      <div class="h-section">CSV Columns</div>
+      <div style="color:var(--text)">timestamp · node_id · location · night · motion · brightness_pct · voltage_V · current_A · power_W · energy_kWh · rssi</div>
+      <div style="margin-top:14px;padding:10px 12px;border:1px solid color-mix(in srgb,var(--gold) 30%,transparent);background:var(--gold-soft);color:var(--gold);border-radius:6px">
+        ⚠ NOTE: The dashboard and logger.py both read the same serial port. Use only one at a time — either the dashboard's Web Serial connection OR logger.py, not both simultaneously.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CHART MODAL -->
+<div class="overlay" id="mOv">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div>
+        <div class="modal-title" id="mTitle">—</div>
+        <div class="modal-meta">Node: <b id="mNode">—</b> &nbsp;·&nbsp; Location: <b id="mLoc">—</b> &nbsp;·&nbsp; Last packet: <b id="mTime">—</b></div>
+      </div>
+      <div style="display:flex;gap:7px;align-items:center">
+        <div class="mrng">
+          <button class="rb active" onclick="setMR(600,this)">10m</button>
+          <button class="rb" onclick="setMR(1800,this)">30m</button>
+          <button class="rb" onclick="setMR(3600,this)">1hr</button>
+          <button class="rb" onclick="setMR(99999,this)">All</button>
+        </div>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+    </div>
+    <div class="modal-chart"><canvas id="mCanvas"></canvas></div>
+    <div class="modal-stats">
+      <div class="ms"><b id="ms-min">—</b>MIN</div>
+      <div class="ms"><b id="ms-max">—</b>MAX</div>
+      <div class="ms"><b id="ms-avg">—</b>AVG</div>
+      <div class="ms"><b id="ms-cur">—</b>LATEST</div>
+      <div class="ms"><b id="ms-n">—</b>PACKETS</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════
+const GRAPH_KEYS = ['voltage','current','power','energy','brightness','night','motion'];
+const LABELS = {
+  voltage:'Voltage (V)', current:'Current (A)', power:'Power (W)',
+  energy:'Energy (kWh)', brightness:'Brightness (%)',
+  night:'Night Mode (0/1)', motion:'Motion Detected (0/1)',
+  location:'Node / Location'
+};
+
+function getColors() {
+  const s = getComputedStyle(document.documentElement);
+  return {
+    voltage:    s.getPropertyValue('--gold').trim(),
+    current:    s.getPropertyValue('--accent').trim(),
+    power:      s.getPropertyValue('--orange').trim(),
+    energy:     s.getPropertyValue('--green').trim(),
+    brightness: s.getPropertyValue('--gold').trim(),
+    night:      s.getPropertyValue('--purple').trim(),
+    motion:     s.getPropertyValue('--orange').trim(),
+    location:   s.getPropertyValue('--purple').trim(),
+  };
+}
+
+const MAX_PTS = 200;
+
+// ═══════════════ THEME ═══════════════
+function toggleTheme() {
+  const html = document.documentElement;
+  html.setAttribute('data-theme', html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+}
+
+// ═══════════════ STATE ═══════════════
+let curNode = 'ALL';
+let frameCount = 0;
+let demoTimer = null;
+let modalKey = null, modalRange = 600, modalChart = null;
+let csvLogging = true;
+let csvRows = [];
+let csvSnapshot = [];
+
+const nodeData = {};
+const nodeOrder = [];
+const CSV_HDR = 'timestamp,node_id,location,night,motion,brightness_pct,voltage_V,current_A,power_W,energy_kWh,rssi';
+
+// ═══════════════ CLOCK ═══════════════
+(function clk(){
+  const n = new Date();
+  document.getElementById('clkT').textContent = n.toLocaleTimeString('en-IN',{hour12:false});
+  document.getElementById('clkD').textContent = n.toLocaleDateString('en-IN',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
+  setTimeout(clk, 1000);
+})();
+
+// ═══════════════ NODE REGISTRATION ═══════════════
+// Location is ALWAYS taken from received packet data (loc field)
+function ensureNode(id, loc) {
+  if (nodeData[id]) {
+    // Update location from latest packet
+    if (loc) nodeData[id].location = loc;
+    return;
+  }
+  nodeData[id] = {
+    ts:[], voltage:[], current:[], power:[], energy:[], brightness:[],
+    night:[], motion:[],
+    location: loc || id,   // set from packet; fallback to id if empty
+    eAcc:0, on:true, lastSeen:null
+  };
+  nodeOrder.push(id);
+  const sel = document.getElementById('nodeSel');
+  const opt = document.createElement('option');
+  opt.value = id;
+  opt.textContent = `${id} · ${loc || id}`;
+  sel.appendChild(opt);
+  renderMap();
+}
+
+// Update dropdown label when location changes
+function refreshNodeDropdown(id) {
+  const sel = document.getElementById('nodeSel');
+  for (const opt of sel.options) {
+    if (opt.value === id) {
+      opt.textContent = `${id} · ${nodeData[id].location}`;
+      break;
+    }
+  }
+}
+
+// ═══════════════ NODE MAP ═══════════════
+function renderMap() {
+  const g = document.getElementById('nodeGrid');
+  g.innerHTML = '';
+  if (nodeOrder.length === 0) {
+    g.innerHTML = '<div style="font-family:\'DM Mono\',monospace;font-size:.6rem;color:var(--text3);grid-column:1/-1;padding:4px 0">Waiting for nodes…</div>';
+    return;
+  }
+  nodeOrder.forEach(id => {
+    const d = nodeData[id];
+    const el = document.createElement('div');
+    el.className = `nd ${d.on?'on':'off'} ${curNode===id?'active':''}`;
+    el.innerHTML = `<span class="nd-ico">${d.on?'🟢':'🔴'}</span><span class="nd-id">${id}</span><span class="nd-loc" title="${d.location}">${d.location}</span>`;
+    el.onclick = () => { document.getElementById('nodeSel').value = id; onNodeChange(); };
+    g.appendChild(el);
+  });
+}
+
+// ═══════════════ SPARKLINES ═══════════════
+const sparks = {};
+(function initSparks(){
+  GRAPH_KEYS.forEach(k => {
+    const c = document.getElementById(`sp-${k}`); if(!c) return;
+    const COLORS = getColors();
+    sparks[k] = new Chart(c, {
+      type:'line',
+      data:{ labels:[], datasets:[{ data:[], borderColor:COLORS[k], borderWidth:1.5, pointRadius:0, fill:true, backgroundColor:COLORS[k]+'18', tension:0.4 }] },
+      options:{ responsive:false, animation:false, plugins:{legend:{display:false},tooltip:{enabled:false}}, scales:{x:{display:false},y:{display:false}} }
+    });
+  });
+})();
+
+function pushSpark(k, val) {
+  const sp = sparks[k]; if(!sp) return;
+  sp.data.labels.push('');
+  sp.data.datasets[0].data.push(val);
+  if(sp.data.labels.length > 40){ sp.data.labels.shift(); sp.data.datasets[0].data.shift(); }
+  sp.update('none');
+}
+
+// ═══════════════ PACKET PARSER ═══════════════
+function parsePacket(line) {
+  const obj = {};
+  const rssiMatch = line.match(/RSSI:\s*(-?\d+)/i);
+  if (rssiMatch) { obj.rssi = parseInt(rssiMatch[1]); line = line.replace(/,?\s*RSSI:\s*-?\d+/i,''); }
+  const parts = line.split(',');
+  parts.forEach(p => {
+    const idx = p.indexOf(':'); if(idx < 0) return;
+    obj[p.slice(0,idx).trim()] = p.slice(idx+1).trim();
+  });
+  return obj;
+}
+
+// ═══════════════ INGEST (raw LoRa line) ═══════════════
+function ingest(line) {
+  line = line.trim(); if(!line) return;
+  logS(line);
+  if(!line.includes('ID:')) return;
+  const pkt = parsePacket(line);
+  const id = pkt['ID']; if(!id) return;
+  const loc = pkt['Loc'] || id;   // LOCATION FROM PACKET
+
+  ensureNode(id, loc);
+  refreshNodeDropdown(id);
+  const d = nodeData[id];
+  const now = Date.now();
+
+  const V  = parseFloat(pkt['V']) || 0;
+  const I  = parseFloat(pkt['I']) || 0;
+  const P  = parseFloat(pkt['P']) || 0;
+  const B  = parseFloat(pkt['B']) || 0;
+  const N  = parseInt(pkt['N'])   || 0;
+  const M  = parseInt(pkt['M'])   || 0;
+  const rssi = pkt.rssi !== undefined ? pkt.rssi : null;
+
+  const dtH = d.lastSeen ? (now - d.lastSeen) / 3_600_000 : 0;
+  d.eAcc += (P * dtH) / 1000;
+  d.lastSeen = now;
+  d.on = (N === 1);
+
+  const pp = (arr,val) => { arr.push(val); if(arr.length > MAX_PTS) arr.shift(); };
+  pp(d.ts, now); pp(d.voltage, V); pp(d.current, I); pp(d.power, P);
+  pp(d.energy, parseFloat(d.eAcc.toFixed(4)));
+  pp(d.brightness, B); pp(d.night, N); pp(d.motion, M);
+
+  frameCount++;
+  document.getElementById('frmCnt').textContent = `${frameCount} packets`;
+
+  if(curNode === 'ALL' || curNode === id) {
+    updateTiles(d, id, rssi);
+    GRAPH_KEYS.forEach(k => pushSpark(k, (d[k]||[])[d[k].length-1] ?? 0));
+    if(modalKey) refreshModal();
+  }
+  renderMap();
+  if(csvLogging) {
+    csvRows.push([new Date(now).toISOString(), id, loc, N, M, B, V, I, P, d.eAcc.toFixed(4), rssi !== null ? rssi : ''].join(','));
+    document.getElementById('csvInf').textContent = `CSV: Logging · ${csvRows.length} rows`;
+  }
+  if(I > 5)   pushAlert(`⚠ ${id}: High Current ${I.toFixed(2)} A`, 'warn');
+  if(V < 200 && V > 0) pushAlert(`⚠ ${id}: Low Voltage ${V.toFixed(1)} V`, 'warn');
+  if(M === 1 && N === 1) pushAlert(`🚶 ${id}: Motion at ${new Date(now).toLocaleTimeString('en-IN',{hour12:false})}`, 'ok');
+}
+
+// ═══════════════ INGEST PARSED (from Python logger) ═══════════════
+function ingestParsed(msg){
+  const id  = msg.node_id;
+  const loc = msg.location;   // LOCATION FROM PACKET DATA
+  ensureNode(id, loc);
+  refreshNodeDropdown(id);
+  const d   = nodeData[id];
+  const now = Date.now();
+
+  d.lastSeen = now;
+  d.on = (msg.night === 1);
+  d.location = loc || d.location;  // always update from packet
+
+  const pp = (arr,val) => { arr.push(val); if(arr.length > MAX_PTS) arr.shift(); };
+  pp(d.ts,         now);
+  pp(d.voltage,    msg.voltage);
+  pp(d.current,    msg.current);
+  pp(d.power,      msg.power);
+  pp(d.energy,     msg.energy_kwh);
+  pp(d.brightness, msg.brightness);
+  pp(d.night,      msg.night);
+  pp(d.motion,     msg.motion);
+
+  frameCount++;
+  document.getElementById('frmCnt').textContent = `${frameCount} packets`;
+
+  if(curNode==='ALL' || curNode===id){
+    updateTiles(d, id, msg.rssi);
+    GRAPH_KEYS.forEach(k => pushSpark(k, (d[k]||[])[d[k].length-1] ?? 0));
+    if(modalKey) refreshModal();
+  }
+  renderMap();
+  if(msg.current > 5)              pushAlert(`⚠ ${id}: High Current ${msg.current.toFixed(2)}A`,'warn');
+  if(msg.voltage < 200 && msg.voltage > 0) pushAlert(`⚠ ${id}: Low Voltage ${msg.voltage.toFixed(1)}V`,'warn');
+  if(msg.motion && msg.night)      pushAlert(`🚶 ${id}: Motion at ${msg.ts.split(' ')[1]}`,'ok');
+}
+
+// ═══════════════ TILE UPDATE ═══════════════
+function updateTiles(d, id, rssi) {
+  const last = k => (d[k]||[]).length ? d[k][d[k].length-1] : null;
+  const prev = k => (d[k]||[]).length > 1 ? d[k][d[k].length-2] : null;
+
+  const setV = (eid, val, decimals=2) => {
+    const el = document.getElementById(`tv-${eid}`); if(!el) return;
+    el.textContent = val !== null ? (typeof val === 'number' ? val.toFixed(decimals) : val) : '—';
+  };
+  const setDelta = (eid, k, decimals=3) => {
+    const el = document.getElementById(`td-${eid}`); if(!el) return;
+    const l=last(k), p=prev(k); if(l===null||p===null) return;
+    const diff=l-p;
+    el.textContent=(diff>=0?'▲ +':'▼ ')+Math.abs(diff).toFixed(decimals);
+    el.className=`tile-sub ${diff>0?'up':diff<0?'dn':'nt'}`;
+  };
+
+  setV('voltage',  last('voltage'));  setDelta('voltage','voltage');
+  setV('current',  last('current'));  setDelta('current','current');
+  setV('power',    last('power'), 1); setDelta('power','power',1);
+  setV('energy',   last('energy'), 4);
+  document.getElementById('td-energy').textContent = `Since session start · Node: ${id}`;
+
+  const B = last('brightness');
+  setV('brightness', B, 0);
+  document.getElementById('td-brightness').textContent = `Dimmer: ${B !== null ? B : '—'}% · RBDdimmer`;
+  document.getElementById('brightFill').style.width = (B !== null ? Math.min(100,B) : 0) + '%';
+
+  const N = last('night');
+  const nightEl = document.getElementById('tv-night');
+  const nightBadge = document.getElementById('night-badge-wrap');
+  if(N !== null) {
+    nightEl.textContent = N ? 'NIGHT' : 'DAY';
+    nightEl.style.color = N ? 'var(--purple)' : 'var(--gold)';
+    nightBadge.innerHTML = N
+      ? '<span class="badge" style="color:var(--purple)">🌙 Lamp ON</span>'
+      : '<span class="badge" style="color:var(--gold)">☀️ Lamp OFF</span>';
+    document.getElementById('td-night').textContent = N ? 'LDR: LOW (dark)' : 'LDR: HIGH (bright)';
+    document.getElementById('td-night').className = `tile-sub ${N?'up':'nt'}`;
+  }
+
+  const Mo = last('motion');
+  const motionEl = document.getElementById('tv-motion');
+  const motionBadge = document.getElementById('motion-badge-wrap');
+  if(Mo !== null) {
+    motionEl.textContent = Mo ? 'DETECTED' : 'CLEAR';
+    motionEl.style.color = Mo ? 'var(--orange)' : 'var(--text3)';
+    motionBadge.innerHTML = Mo
+      ? '<span class="badge" style="color:var(--orange)">🚶 Motion Active</span>'
+      : '<span class="badge" style="color:var(--text3)">— No Motion</span>';
+    document.getElementById('td-motion').textContent = Mo
+      ? `100% brightness active`
+      : `Dimmed to ${last('brightness')||30}%`;
+    document.getElementById('td-motion').className = `tile-sub ${Mo?'up':'nt'}`;
+  }
+
+  // Location tile — reads from packet data automatically
+  document.getElementById('tv-location').textContent = id;
+  document.getElementById('td-location').textContent = d.location;   // from packet
+  if(rssi !== null) document.getElementById('tv-rssi').textContent = rssi;
+  document.getElementById('tv-pkts').textContent = frameCount;
+}
+
+// ═══════════════ GET VIEW DATA ═══════════════
+function getViewData(key) {
+  if(curNode !== 'ALL') {
+    const d = nodeData[curNode];
+    return d ? { ts: d.ts.slice(), vals: (d[key]||[]).slice() } : { ts:[], vals:[] };
+  }
+  const pts = [];
+  nodeOrder.forEach(id => {
+    const d = nodeData[id];
+    d.ts.forEach((t,i) => pts.push({ t, v: (d[key]||[])[i] ?? 0 }));
+  });
+  pts.sort((a,b)=>a.t-b.t);
+  const sliced = pts.slice(-MAX_PTS);
+  return { ts: sliced.map(x=>x.t), vals: sliced.map(x=>x.v) };
+}
+
+// ═══════════════ NODE CHANGE ═══════════════
+function onNodeChange() {
+  curNode = document.getElementById('nodeSel').value;
+  renderMap();
+  if(curNode !== 'ALL' && nodeData[curNode]) {
+    const d = nodeData[curNode];
+    updateTiles(d, curNode, null);
+    GRAPH_KEYS.forEach(k => {
+      const sp=sparks[k]; if(!sp) return;
+      sp.data.labels=d.ts.map(()=>'');
+      sp.data.datasets[0].data=(d[k]||[]).slice();
+      sp.update('none');
+    });
+  }
+  if(modalKey) refreshModal();
+}
+
+// ═══════════════ MODAL ═══════════════
+function openModal(key) {
+  if(key === 'location') return;
+  modalKey = key;
+  document.getElementById('mTitle').textContent = (LABELS[key]||key).toUpperCase() + ' — DETAIL VIEW';
+  document.getElementById('mNode').textContent = curNode;
+  document.getElementById('mLoc').textContent = curNode !== 'ALL' ? (nodeData[curNode]?.location||'—') : 'All Nodes';
+  document.getElementById('mOv').classList.add('open');
+  refreshModal();
+}
+function closeModal() {
+  document.getElementById('mOv').classList.remove('open');
+  if(modalChart){ modalChart.destroy(); modalChart=null; }
+  modalKey = null;
+}
+function refreshModal() {
+  if(!modalKey) return;
+  const COLORS = getColors();
+  const cutoff = Date.now() - modalRange*1000;
+  const {ts, vals} = getViewData(modalKey);
+  const pairs = ts.map((t,i)=>({t,v:vals[i]??0})).filter(x=>x.t>=cutoff);
+  const lbls = pairs.map(x=>new Date(x.t).toLocaleTimeString('en-IN',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'}));
+  const vs = pairs.map(x=>x.v);
+  const s = getComputedStyle(document.documentElement);
+  const textColor = s.getPropertyValue('--text2').trim();
+  const gridColor = s.getPropertyValue('--border').trim();
+
+  if(modalChart){ modalChart.destroy(); modalChart=null; }
+  const ctx = document.getElementById('mCanvas').getContext('2d');
+  const col = COLORS[modalKey]||'#4f9eff';
+  const isBinary = (modalKey==='night'||modalKey==='motion');
+
+  modalChart = new Chart(ctx, {
+    type: isBinary ? 'bar' : 'line',
+    data:{
+      labels: lbls,
+      datasets:[{
+        label: LABELS[modalKey]||modalKey,
+        data: vs,
+        borderColor: col, borderWidth: 2,
+        backgroundColor: col+(isBinary?'88':'15'),
+        pointRadius: vs.length<60&&!isBinary?2:0,
+        tension: 0.4, fill: !isBinary
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false, animation:false,
+      plugins:{
+        legend:{ labels:{ color:textColor, font:{family:'DM Sans',size:12} } },
+        tooltip:{ mode:'index', intersect:false }
+      },
+      scales:{
+        x:{ ticks:{color:textColor,font:{family:'DM Mono',size:9},maxTicksLimit:10}, grid:{color:gridColor} },
+        y:{
+          ticks:{color:col,font:{family:'DM Mono',size:10}},
+          grid:{color:gridColor},
+          ...(isBinary?{min:0,max:1,ticks:{stepSize:1,callback:v=>v?'YES':'NO'}}:{})
+        }
+      }
+    }
+  });
+
+  if(vs.length){
+    const mn=Math.min(...vs),mx=Math.max(...vs),av=vs.reduce((a,b)=>a+b,0)/vs.length;
+    document.getElementById('ms-min').textContent=mn.toFixed(isBinary?0:3);
+    document.getElementById('ms-max').textContent=mx.toFixed(isBinary?0:3);
+    document.getElementById('ms-avg').textContent=av.toFixed(isBinary?2:3);
+    document.getElementById('ms-cur').textContent=vs[vs.length-1].toFixed(isBinary?0:3);
+    document.getElementById('ms-n').textContent=vs.length;
+    document.getElementById('mTime').textContent=lbls[lbls.length-1]||'—';
+  }
+}
+function setMR(sec,btn){
+  modalRange=sec;
+  document.querySelectorAll('.rb').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); refreshModal();
+}
+document.getElementById('mOv').addEventListener('click',e=>{ if(e.target===document.getElementById('mOv')) closeModal(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
+
+// ═══════════════ SERIAL LOG ═══════════════
+function logS(line, cls=''){
+  const box = document.getElementById('serialLog');
+  const ts = new Date().toLocaleTimeString('en-IN',{hour12:false});
+  let c = cls || 'log-data';
+  if(!cls){
+    if(line.match(/err|fail|failed/i))           c='log-err';
+    else if(line.match(/warn|high|low voltage/i)) c='log-warn';
+    else if(line.match(/ready|ok|connected|started|online|bridge/i)) c='log-ok';
+    else if(line.includes('ID:'))                 c='log-data';
+  }
+  const div = document.createElement('div');
+  div.innerHTML = `<span class="log-ts">[${ts}]</span> <span class="${c}">${esc(line)}</span>`;
+  box.appendChild(div);
+  if(box.children.length > 200) box.removeChild(box.firstChild);
+  box.scrollTop = box.scrollHeight;
+}
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ═══════════════ TICKER ═══════════════
+const alertLog = [];
+function pushAlert(msg, type='ok'){
+  alertLog.push({msg,type}); if(alertLog.length>24) alertLog.shift();
+  const half = alertLog.map(a=>`<span class="t-${a.type==='warn'?'warn':'ok'}">${esc(a.msg)}</span>`).join('<span class="t-mt"> · </span>');
+  document.getElementById('tickTrk').innerHTML = half+'<span style="margin:0 20px"></span>'+half;
+}
+
+// ═══════════════ CSV DOWNLOAD ═══════════════
+function downloadCSV(){
+  if(!csvSnapshot.length){ logS('No data received yet','log-warn'); return; }
+  const rows = [CSV_HDR, ...csvSnapshot];
+  const blob = new Blob([rows.join('\n')], {type:'text/csv'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=`streetlight_snapshot_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+  logS(`Snapshot downloaded — ${csvSnapshot.length} rows`,'log-ok');
+}
+
+function clearAll(){
+  nodeOrder.length = 0;
+  Object.keys(nodeData).forEach(k=>delete nodeData[k]);
+  frameCount=0; csvSnapshot=[];
+  document.getElementById('frmCnt').textContent='0 packets';
+  document.getElementById('csvInf').textContent='0 packets received';
+  const sel=document.getElementById('nodeSel');
+  while(sel.options.length>1) sel.remove(1);
+  curNode='ALL'; sel.value='ALL';
+  GRAPH_KEYS.forEach(k=>{const sp=sparks[k];if(!sp)return;sp.data.labels=[];sp.data.datasets[0].data=[];sp.update('none');});
+  renderMap();
+  logS('All data cleared','log-warn');
+}
+
+// ═══════════════ WEBSOCKET ═══════════════
+let ws = null, wsReconnectTimer = null, wsConnected = false;
+
+function connectWS(){
+  document.getElementById('connOv').style.display='none';
+  const url = document.getElementById('wsUrl').value.trim() || 'ws://localhost:8765';
+  _openWS(url);
+}
+function _openWS(url){
+  if(ws){ try{ ws.close(); }catch(e){} }
+  logS(`Connecting to Python logger at ${url} …`,'log-ok');
+  setConn('connecting');
+  ws = new WebSocket(url);
+  ws.onopen = () => {
+    wsConnected=true; clearTimeout(wsReconnectTimer);
+    setConn('ws'); logS('WebSocket connected — Python logger bridge is live','log-ok');
+    pushAlert('✔ Python logger connected','ok');
+  };
+  ws.onmessage = (evt) => {
+    let msg; try{ msg=JSON.parse(evt.data); }catch(e){ return; }
+    if(msg.type==='status'){
+      updateLoggerBar({connected:true, csv:msg.csv, rows:0});
+      logS(`Python logger: CSV file → ${msg.csv}`,'log-ok');
+    } else if(msg.type==='raw'){
+      logS(msg.line);
+    } else if(msg.type==='packet'){
+      ingestParsed(msg);
+      updateLoggerBar({rows:msg.row});
+      csvSnapshot.push([msg.ts,msg.node_id,msg.location,msg.night,msg.motion,msg.brightness,msg.voltage,msg.current,msg.power,msg.energy_kwh,msg.rssi??''].join(','));
+      document.getElementById('csvInf').textContent=`${frameCount} packets received · ${msg.row} rows saved to CSV`;
+    }
+  };
+  ws.onerror = () => { if(!wsConnected) logS('Cannot reach Python logger — is logger.py running?','log-err'); };
+  ws.onclose = () => {
+    wsConnected=false; if(demoTimer) return;
+    setConn('off'); logS('WebSocket disconnected — retrying in 5s…','log-warn');
+    updateLoggerBar({connected:false});
+    wsReconnectTimer = setTimeout(()=>{ if(!wsConnected&&!demoTimer){ _openWS(document.getElementById('wsUrl').value.trim()||'ws://localhost:8765'); }}, 5000);
+  };
+}
+function disconnectWS(){
+  clearTimeout(wsReconnectTimer);
+  if(ws){ try{ ws.close(); }catch(e){} ws=null; }
+  wsConnected=false; setConn('off'); updateLoggerBar({connected:false});
+  logS('Disconnected from Python logger','log-warn');
+}
+
+// ═══════════════ CONN STATE ═══════════════
+function setConn(mode){
+  const dot=document.getElementById('cDot'), lbl=document.getElementById('cLbl');
+  const bc=document.getElementById('btnConn'), bd=document.getElementById('btnDisc');
+  dot.className='c-dot'; lbl.textContent='DISCONNECTED';
+  bc.style.display=''; bd.style.display='none';
+  if(mode==='ws'){     dot.className='c-dot on';   lbl.textContent='LIVE'; bc.style.display='none'; bd.style.display=''; }
+  if(mode==='connecting'){ dot.className='c-dot'; lbl.textContent='CONNECTING…'; }
+  if(mode==='demo'){   dot.className='c-dot demo'; lbl.textContent='DEMO'; bc.style.display='none'; bd.style.display=''; }
+  if(mode==='off'){ if(demoTimer){ clearInterval(demoTimer); demoTimer=null; } updateLoggerBar({connected:false}); }
+}
+
+// ═══════════════ LOGGER BAR ═══════════════
+let _lgCsvFile='', _lgRows=0;
+function updateLoggerBar({connected, csv, rows}={}){
+  const dot=document.getElementById('lgDot'), status=document.getElementById('lgStatus');
+  const path=document.getElementById('lgPath'), rowEl=document.getElementById('lgRows');
+  const hint=document.getElementById('lgHint');
+  if(connected===false){
+    dot.className='lg-dot'; status.innerHTML='Not connected — run <b>logger.py</b> then click <b>Connect Logger</b>';
+    path.textContent=''; rowEl.textContent=''; rowEl.className='lg-rows zero';
+    if(hint) hint.style.display=''; return;
+  }
+  if(csv) _lgCsvFile=csv; if(rows!==undefined) _lgRows=rows;
+  dot.className='lg-dot active'; status.innerHTML='Writing to disk: ';
+  path.textContent=_lgCsvFile||'…'; rowEl.textContent=`${_lgRows} rows saved`;
+  rowEl.className='lg-rows'; if(hint) hint.style.display='none';
+}
+
+// ═══════════════ DEMO MODE ═══════════════
+// Node locations are in the packet data — the dashboard reads them automatically
+const DEMO_NODES=[
+  {id:'SL-01', loc:'IIT_GATE_1',   v:230, i:1.2, p:261, b:30,  n:1, m:0},
+  {id:'SL-02', loc:'IIT_GATE_2',   v:229, i:1.5, p:323, b:100, n:1, m:1},
+  {id:'SL-03', loc:'IIT_LIBRARY',  v:231, i:0.8, p:177, b:30,  n:1, m:0},
+  {id:'SL-04', loc:'IIT_HOSTEL_A', v:228, i:2.1, p:451, b:100, n:1, m:1},
+  {id:'SL-05', loc:'IIT_SPORTS',   v:232, i:1.1, p:243, b:30,  n:1, m:0},
+  {id:'SL-06', loc:'IIT_ADMIN',    v:230, i:0.9, p:196, b:0,   n:0, m:0}
+];
+
+function startDemo(){
+  document.getElementById('connOv').style.display='none';
+  disconnectWS(); setConn('demo');
+  logS('Demo mode — simulating SL-01 … SL-06 (no Python logger)','log-ok');
+  updateLoggerBar({connected:false});
+  document.getElementById('lgStatus').innerHTML='Demo mode — CSV logging handled by Python when connected';
+  let tick=0, eAcc={};
+  demoTimer=setInterval(()=>{
+    const node=DEMO_NODES[tick%DEMO_NODES.length];
+    const r=(b,rng)=>parseFloat((b+(Math.random()-.5)*rng*2).toFixed(3));
+    const m=Math.random()>0.7?1:node.m;
+    const b=node.n?(m?100:30):0;
+    const pw=r(node.p,15);
+    const id=node.id;
+    if(!eAcc[id]) eAcc[id]=0;
+    eAcc[id]+=parseFloat((pw*1.2/3600000/1000).toFixed(8));
+    ingestParsed({
+      ts:         new Date().toISOString().replace('T',' ').slice(0,19),
+      node_id:    node.id,
+      location:   node.loc,   // location comes from packet
+      night:      node.n,
+      motion:     m,
+      brightness: b,
+      voltage:    r(node.v,2),
+      current:    r(node.i,.15),
+      power:      pw,
+      energy_kwh: parseFloat(eAcc[id].toFixed(6)),
+      rssi:       -(70+Math.floor(Math.random()*20)),
+      row:        tick+1
+    });
+    tick++;
+  }, 1200);
+}
+
+// ═══════════════ LOGGER HELP MODAL ═══════════════
+function showLoggerHelp(){ document.getElementById('loggerHelp').classList.add('open'); }
+function closeLoggerHelp(){ document.getElementById('loggerHelp').classList.remove('open'); }
+document.getElementById('loggerHelp').addEventListener('click',e=>{ if(e.target===document.getElementById('loggerHelp')) closeLoggerHelp(); });
+
+// ═══════════════ INIT ═══════════════
+document.getElementById('connOv').style.display='flex';
+</script>
+</body>
+</html>
