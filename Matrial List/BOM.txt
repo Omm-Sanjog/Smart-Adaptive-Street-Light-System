@@ -1,0 +1,64 @@
+Use this link to access the BOM (Bill of Materials) sheet with purchase link.
+
+https://docs.google.com/spreadsheets/d/1T08cb8BBz_1RzZEx4H3VK8Yg42f55AU9BTSIQmojg50/edit?gid=0#gid=0 
+
+
+================================================================================
+                           COMPONENTS REQUIRED
+================================================================================
+
+| Sl. No | Component Name                     | Quantity Required                | Link to Buy | Cost/Unit | Total Cost | Vendor        | Remarks                          | Order Status |
+|--------|------------------------------------|----------------------------------|-------------|------------|-------------|---------------|----------------------------------|--------------|
+|        | MAIN MICROCONTROLLER               |                                  |             |            |             |               |                                  |              |
+| 1      | ESP32 Dev Board                    | 2                                | ESP32       | 425        | 850         | IHC           | -                                | Done         |
+|--------|------------------------------------|----------------------------------|-------------|------------|-------------|---------------|----------------------------------|--------------|
+|        | COMMUNICATION MODULE               |                                  |             |            |             |               |                                  |              |
+| 2      | Smart Elex LoRa Module             | 2                                | LORA        | 649        | 1298        | Robu          | -                                | Done         |
+| 3      | LoRa Antenna                       | 2                                | Antenna     | 67         | 134         | Robu          | -                                | Done         |
+| 4      | Antenna Connectors                 | 2                                | Connectors  | 89         | 178         | Robu          | Forgot to add earlier            | Done         |
+|--------|------------------------------------|----------------------------------|-------------|------------|-------------|---------------|----------------------------------|--------------|
+|        | SENSORS                            |                                  |             |            |             |               |                                  |              |
+| 5      | Motion Sensor (RCWL-0516)          | 1                                | RCWL        | 34         | 34          | Robu          | -                                | Done         |
+| 6      | LDR Sensor                         | 1                                | LDR         | 30         | 30          | Robu          | -                                | Done         |
+| 7      | Energy Meter (PZEM-004T)           | 1                                | Meter       | 728        | 728         | Robu          | -                                | Done         |
+|--------|------------------------------------|----------------------------------|-------------|------------|-------------|---------------|----------------------------------|--------------|
+|        | ACTUATORS                          |                                  |             |            |             |               |                                  |              |
+| 8      | 1-Channel Relay (30A)              | 1                                | Relay       | 185        | 185         | IHC           | -                                | Done         |
+| 9      | AC Dimmer Module                   | 1                                | Dimmer      | 1076       | 1076        | Robu          | Out of Stock                     | Pending      |
+|--------|------------------------------------|----------------------------------|-------------|------------|-------------|---------------|----------------------------------|--------------|
+|        | POWER                              |                                  |             |            |             |               |                                  |              |
+| 10     | AC-DC Converter                    | 1                                | AC-DC       | 249        | 249         | IHC           | -                                | Done         |
+| 11     | 30A MCB                            | 1                                | -           | 220        | 220         | Local Market  | -                                | -            |
+|--------|------------------------------------|----------------------------------|-------------|------------|-------------|---------------|----------------------------------|--------------|
+|        | HOUSING                            |                                  |             |            |             |               |                                  |              |
+| 12     | IP65 Waterproof Box                | 1                                | Box         | 245        | 245         | Robu          | -                                | Done         |
+|        | OR                                 |                                  |             |            |             |               |                                  |              |
+|        | Custom Designed Enclosure          | -                                | -           | -          | -           | -             | Optional                         | -            |
+|--------|------------------------------------|----------------------------------|-------------|------------|-------------|---------------|----------------------------------|--------------|
+|        | PCB & ACCESSORIES                  |                                  |             |            |             |               |                                  |              |
+| 13     | Veroboard (9x15)                   | 2                                | PCB         | 92         | 184         | Robu          | -                                | Done         |
+| 14     | Female Header                      | 5                                | Header      | 12         | 60          | IHC           | -                                | Done         |
+| 15     | Screw Terminals                    | 5                                | Terminal    | 10         | 50          | IHC           | -                                | Done         |
+| 16     | 24AWG Silicon Wires                | 2m (1m Black, 1m Red)            | Wire        | 9          | 18          | Robu          | -                                | Done         |
+| 17     | 20AWG Silicon Wires                | 2m (1m Black, 1m Red)            | Wire        | 21         | 42          | Robu          | -                                | Done         |
+| 18     | Insulation Tape                    | 1                                | Tape        | 171        | 171         | -             | -                                | -            |
+| 19     | USB Type-C Data Cable              | 1                                | Cable       | 149        | 149         | -             | -                                | -            |
+| 20     | Resistors, Capacitors, LEDs, Diodes| Assorted                        | -           | 150        | 150         | IHC           | Overall price mentioned          | Done         |
+
+================================================================================
+TOTAL COST SUMMARY
+================================================================================
+
+Total Cost (Master + Node) : Approx. ₹5700
+Master Cost                : Approx. ₹1500
+Node Cost                  : Approx. ₹4200
+
+================================================================================
+NOTES
+================================================================================
+
+1. Order components only from IHC or Robu.
+2. If using alternatives outside the BOM, verify product compatibility.
+3. Current BOM is prepared for 1 Master and 1 Node setup.
+
+================================================================================
