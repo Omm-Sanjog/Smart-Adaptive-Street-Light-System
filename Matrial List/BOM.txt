@@ -49,9 +49,9 @@ https://docs.google.com/spreadsheets/d/1T08cb8BBz_1RzZEx4H3VK8Yg42f55AU9BTSIQmoj
 TOTAL COST SUMMARY
 ================================================================================
 
-Total Cost (Master + Node) : Approx. ₹5700
-Master Cost                : Approx. ₹1230
-Node Cost                  : Approx. ₹4200
+Total Cost (Master + Node) : Approx. ₹5500
+Master Cost                : Approx. ₹1500
+Node Cost                  : Approx. ₹4000
 
 ================================================================================
 NOTES
