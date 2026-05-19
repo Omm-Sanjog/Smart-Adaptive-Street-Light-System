@@ -7,7 +7,7 @@ https://docs.google.com/spreadsheets/d/1T08cb8BBz_1RzZEx4H3VK8Yg42f55AU9BTSIQmoj
                            COMPONENTS REQUIRED
 ================================================================================
 
-| Sl. No | Component Name                     | Quantity Required                | Link to Buy | Cost/Unit | Total Cost | Vendor        | Remarks                          | Order Status |
+| Sl. No | Component Name                     | Quantity Required                | Link to Buy | Cost/Unit  | Total Cost  | Vendor        | Remarks                          | Order Status |
 |--------|------------------------------------|----------------------------------|-------------|------------|-------------|---------------|----------------------------------|--------------|
 |        | MAIN MICROCONTROLLER               |                                  |             |            |             |               |                                  |              |
 | 1      | ESP32 Dev Board                    | 2                                | ESP32       | 425        | 850         | IHC           | -                                | Done         |
